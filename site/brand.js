@@ -117,22 +117,6 @@
       "</div></article>";
   }
 
-  function bill(p, i) {
-    var line = function (l, v, cls) { return '<div class="' + (cls || "") + '"><span>' + l + "</span><b>" + v + "</b></div>"; };
-    var b = bankOff(p);
-    return '<article class="bill" style="animation-delay:' + i * 70 + 'ms"><span class="rank">#' + (i + 1) + "</span>" +
-      '<div class="bill-top">' + (p.img ? '<img src="' + esc(p.img) + '" alt="">' : "") +
-        "<div><b>" + esc(p.title) + "</b><small>" + esc([p.colour, p.size].filter(Boolean).join(" · ")) + "</small></div></div>" +
-      '<div class="lines">' + line("MRP", inr(p.mrp)) +
-        (p.mrp > p.listed ? line("Flipkart price", inr(p.listed)) : "") +
-        (p.coupon ? line("Coupon", "−" + inr(p.coupon), "minus") : "") +
-        (coinsOff(p) ? line("SuperCoins" + (p.scCoins ? " (" + p.scCoins + ")" : ""), "−" + inr(coinsOff(p)), "minus") : "") +
-        (b ? line(esc(state.card) + " card", "−" + inr(b), "minus") : "") +
-        line("You pay", inr(pay(p)), "pay") + "</div>" +
-      '<span class="stamp">Saved ' + inr(saved(p)) + " · " + pct(p) + "%</span>" +
-      '<a class="buy" href="' + esc(p.url) + '" target="_blank" rel="noopener sponsored">Buy ' + ARROW + "</a></article>";
-  }
-
   var SORTS = {
     save: function (a, b) { return saved(b) - saved(a); },
     pct: function (a, b) { return pct(b) - pct(a) || saved(b) - saved(a); },
@@ -142,16 +126,6 @@
 
   function render() {
     var list = filtered();
-    // one bill per model - colours of the same case would fill all four
-    var seen = {};
-    var top = list.filter(function (p) { return p.stock; }).sort(SORTS.save).filter(function (p) {
-      var k = p.title + "|" + p.size;
-      return seen[k] ? false : (seen[k] = true);
-    }).slice(0, 4);
-    $("best").hidden = !top.length;
-    $("bills").innerHTML = top.map(bill).join("");
-    $("bestSub").textContent = state.card ? "with " + state.card + " card" : "no card offer";
-
     list.sort(SORTS[state.sort]);
     $("grid").className = "grid" + (state.view === "list" ? " list" : "");
     $("grid").innerHTML = list.map(card).join("");
