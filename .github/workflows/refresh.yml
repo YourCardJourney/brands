@@ -1,0 +1,59 @@
+# Brands - read every product page on Flipkart twice a day (9 AM and 9 PM IST),
+# commit the new prices, and publish site/ to GitHub Pages.
+#
+# A page that fails to read keeps its last good price (tools/scrape.py), so a
+# bad run never blanks the board. If nothing at all could be read the run goes
+# red, but the last good data is still published.
+
+name: Refresh
+
+on:
+  schedule:
+    - cron: "30 3 * * *"    # 09:00 IST
+    - cron: "30 15 * * *"   # 21:00 IST
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore: ["README.md"]
+
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Read prices
+        id: scrape
+        continue-on-error: true
+        run: python tools/scrape.py
+      - name: Commit prices
+        run: |
+          git config user.name "brands-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add site/brands.json site/*/products.json
+          git diff --cached --quiet || { git commit -m "Prices $(date -u +'%Y-%m-%d %H:%M') UTC"; git push; }
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@v4
+      - name: Flag a failed read
+        if: steps.scrape.outcome == 'failure'
+        run: |
+          echo "::error::Flipkart could not be read on this run - the site still shows the last good prices."
+          exit 1

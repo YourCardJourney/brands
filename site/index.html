@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Brands – brand deals, worked out | YourCardJourney</title>
+  <meta name="description" content="Brand-by-brand deals with the price worked out: listed price, coupon and card offer, down to what you pay. Refreshed twice a day.">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://brands.yourcardjourney.store/">
+  <meta property="og:title" content="Brands – brand deals, worked out">
+  <meta property="og:url" content="https://brands.yourcardjourney.store/">
+  <meta name="theme-color" content="#c9184a">
+  <link rel="icon" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/app.css" />
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="/">
+      <span class="brand-mark" id="mark"></span>
+      <span class="brand-text"><small class="brand-tag">YOUR CARD JOURNEY</small><span class="brand-name">Brands</span></span>
+    </a>
+  </div>
+</header>
+
+<section class="hero">
+  <h1>Brand deals, <em>worked out.</em></h1>
+  <p>Pick a brand. See what you actually pay.</p>
+</section>
+
+<section class="brands" id="brands" aria-label="Brands"></section>
+
+<footer class="foot">
+  <span id="footMeta"></span>
+  <span class="aff" title="I may earn a small commission if you buy through these links, at no extra cost to you.">Affiliate links</span>
+  <span class="by"><img src="/yourcardjourney.png" alt="" onerror="this.style.display='none'">Shared by <a href="https://yourcardjourney.store" target="_blank" rel="noopener">@YourCardJourney</a></span>
+</footer>
+
+<script src="/common.js"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  $("mark").innerHTML = BR.TAG;
+  var arrow = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+  fetch("/brands.json", { cache: "no-cache" }).then(function (r) { return r.json(); }).then(function (d) {
+    var html = d.brands.map(function (b, i) {
+      return '<a class="btile" href="/' + BR.esc(b.slug) + '/" style="animation-delay:' + i * 60 + 'ms">' +
+        '<div class="btile-pic">' + (b.img ? '<img src="' + BR.esc(b.img) + '" alt="">' : "") +
+          '<span class="btile-off"><small>up to</small>' + b.upto + '% off</span></div>' +
+        '<div class="btile-body"><span class="glyph">' + BR.mark(b.slug) + '</span>' +
+          '<div><div class="btile-name">' + BR.esc(b.name.toUpperCase()) + '</div>' +
+          '<div class="btile-meta">' + b.count + ' deals · ' + BR.esc(b.store) + '</div></div>' +
+          '<span class="btile-go">' + arrow + '</span></div></a>';
+    }).join("");
+    html += '<div class="btile soon"><div class="btile-body" style="padding:28px 18px"><span class="glyph">' + BR.mark("") +
+      '</span><div><div class="btile-name">MORE SOON</div><div class="btile-meta">New brands land here</div></div></div></div>';
+    $("brands").innerHTML = html;
+    var latest = d.brands.map(function (b) { return b.updated; }).sort().pop();
+    if (latest) $("footMeta").innerHTML = '<span class="fresh-dot"></span>Prices read ' + BR.ago(latest);
+  });
+})();
+</script>
+</body>
+</html>
