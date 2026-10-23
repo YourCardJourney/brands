@@ -191,7 +191,9 @@ def refresh(slug):
         k = kind(p["name"])
         items.append(dict(id=p["id"], name=p["name"], title=title(p["name"], cat["name"]),
                           colour=colour(p["name"]), type=k, size=size(p["name"], k),
-                          url=p["link"], stale=r["seen"] != now, **r))
+                          url=p["link"], stale=r["seen"] != now,
+                          # account-level SuperCoin deal, mapped from the source sheet
+                          sc=p.get("sc", 0), scCoins=p.get("scCoins", 0), **r))
 
     os.makedirs(os.path.dirname(out_p), exist_ok=True)
     with io.open(out_p, "w", encoding="utf-8", newline="") as fh:
@@ -203,7 +205,11 @@ def refresh(slug):
 
 
 def best_pay(p):
-    return p["listed"] - p["coupon"] - max(p["banks"].values() or [0])
+    """Mirrors brand.js pay() with SuperCoins on and the best card."""
+    base = p["listed"] - p["coupon"]
+    after = base - p.get("sc", 0)
+    bank = max(p["banks"].values() or [0])
+    return after - (round(bank * after / base) if base > 0 else 0)
 
 
 def main():

@@ -9,13 +9,19 @@
 
   var items = [], cards = [];
   var state = {
-    card: BR.load(SLUG + ".card", null), types: [], sizes: [],
+    card: BR.load(SLUG + ".card", null), coins: BR.load("coins", true), types: [], sizes: [],
     stock: true, sort: BR.load("sort", "save"), view: BR.load("view", "tiles")
   };
 
   // ---- the maths ----
-  function bankOff(p) { return state.card ? (p.banks[state.card] || 0) : 0; }
-  function pay(p) { return p.listed - p.coupon - bankOff(p); }
+  // Card offers are a share of what you pay, so SuperCoins taken off first
+  // shrink the card's cut in proportion (the sheet's own maths works this way).
+  function coinsOff(p) { return state.coins ? (p.sc || 0) : 0; }
+  function bankOff(p) {
+    var amt = state.card ? (p.banks[state.card] || 0) : 0, base = p.listed - p.coupon;
+    return base > 0 ? Math.round(amt * (base - coinsOff(p)) / base) : 0;
+  }
+  function pay(p) { return p.listed - p.coupon - coinsOff(p) - bankOff(p); }
   function saved(p) { return p.mrp - pay(p); }
   function pct(p) { return p.mrp > 0 ? Math.max(0, Math.round(saved(p) / p.mrp * 100)) : 0; }
 
@@ -83,6 +89,7 @@
     var s = "";
     if (flip > 0) s += '<span class="f">Flipkart <b>−' + inr(flip) + "</b></span>";
     if (p.coupon) s += '<span class="c">Coupon <b>−' + inr(p.coupon) + "</b></span>";
+    if (coinsOff(p)) s += '<span class="s">SuperCoins <b>−' + inr(coinsOff(p)) + "</b></span>";
     if (b) s += '<span class="b">' + esc(state.card) + " <b>−" + inr(b) + "</b></span>";
     return s;
   }
@@ -90,7 +97,7 @@
     var flip = Math.max(0, p.mrp - p.listed), b = bankOff(p);
     return '<div class="split" aria-hidden="true"><i class="p" style="flex-grow:' + pay(p) + '"></i>' +
       '<i class="f" style="flex-grow:' + flip + '"></i><i class="c" style="flex-grow:' + p.coupon + '"></i>' +
-      '<i class="b" style="flex-grow:' + b + '"></i></div>';
+      '<i class="s" style="flex-grow:' + coinsOff(p) + '"></i><i class="b" style="flex-grow:' + b + '"></i></div>';
   }
   var ARROW = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>';
 
@@ -119,6 +126,7 @@
       '<div class="lines">' + line("MRP", inr(p.mrp)) +
         (p.mrp > p.listed ? line("Flipkart price", inr(p.listed)) : "") +
         (p.coupon ? line("Coupon", "−" + inr(p.coupon), "minus") : "") +
+        (coinsOff(p) ? line("SuperCoins" + (p.scCoins ? " (" + p.scCoins + ")" : ""), "−" + inr(coinsOff(p)), "minus") : "") +
         (b ? line(esc(state.card) + " card", "−" + inr(b), "minus") : "") +
         line("You pay", inr(pay(p)), "pay") + "</div>" +
       '<span class="stamp">Saved ' + inr(saved(p)) + " · " + pct(p) + "%</span>" +
@@ -157,6 +165,8 @@
       var b = e.target.closest("[data-card]"); if (!b) return;
       state.card = b.dataset.card; BR.save(SLUG + ".card", state.card); press(this, b); render();
     };
+    $("coinsOn").checked = state.coins;
+    $("coinsOn").onchange = function () { state.coins = this.checked; BR.save("coins", state.coins); render(); };
     $("typeRow").onclick = function (e) {
       var b = e.target.closest("[data-type]"); if (!b) return;
       var t = b.dataset.type, i = state.types.indexOf(t);

@@ -257,6 +257,9 @@ select.mini { cursor: pointer; }
 .split .f { background: color-mix(in srgb, var(--mute) 45%, transparent); }
 .split .c { background: #f0a020; }
 .split .b { background: var(--ok); }
+.split .s { background: #7c5cff; }
+.steps .s::before { background: #7c5cff; }
+.dealbar .coins { flex: none; margin-left: auto; padding-left: 4px; }
 .steps { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 8px; font-size: 11.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .steps span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
 .steps span::before { content: ""; width: 7px; height: 7px; border-radius: 2px; background: currentColor; }
