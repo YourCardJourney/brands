@@ -38,6 +38,8 @@ jobs:
           python-version: "3.12"
       - name: Read prices
         id: scrape
+        # a push is a page change - publish it as is, no fresh read
+        if: github.event_name != 'push'
         continue-on-error: true
         run: python tools/scrape.py
       - name: Commit prices
