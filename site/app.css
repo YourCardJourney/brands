@@ -168,6 +168,7 @@ button { cursor: pointer; }
 /* ---------- filters ---------- */
 .filterbar { max-width: 1240px; margin: 0 auto; padding: 12px 24px 0; }
 .chiprow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-bottom: 10px; }
+.chiprow[hidden] { display: none; }
 .chiprow + .chiprow { border-top: 1px solid var(--line); padding-top: 10px; }
 .chip {
   flex: none; display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 7px; border-radius: 999px;
@@ -184,6 +185,10 @@ button { cursor: pointer; }
 .chip.is-active .count { background: color-mix(in srgb, var(--pri) 16%, transparent); color: var(--pri); }
 .chiprow .rowlabel { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); margin-right: 2px; }
 .chiprow .seg.tiny { flex: none; }
+.offrow { justify-content: space-between; }
+.offchips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.offrow .tally { flex: none; padding: 6px 14px; border-radius: 999px; background: var(--pri-soft); color: var(--ink-2); white-space: nowrap; }
+.offrow .tally b { color: var(--pri); }
 .chip.sm { padding: 5px 12px; font-size: 12.5px; gap: 6px; }
 .chip.sm .count { min-width: 18px; height: 18px; font-size: 10.5px; padding: 0 5px; }
 .chip.sm.is-active::before { content: "✓"; font-size: 11px; font-weight: 800; }
@@ -327,11 +332,12 @@ select.mini { cursor: pointer; }
   .topbar-inner, .dealbar-inner, .filterbar, main, .hero, .brands, .foot { padding-left: 16px; padding-right: 16px; }
   .chiprow { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding-left: 16px; padding-right: 16px; }
   .chiprow::-webkit-scrollbar { display: none; }
+  .offrow { justify-content: flex-start; gap: 12px; }
+  .offchips { flex-wrap: nowrap; flex: none; }
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .body { padding: 10px; }
   .price .now { font-size: 18px; }
   .steps { font-size: 10.5px; gap: 3px 8px; }
-  .board-bar .coins { margin-left: auto; }
   .seg.banks button { font-size: 12.5px; padding: 5px 10px; gap: 5px; }
   .mini-toggles { margin-left: 0; width: 100%; }
   .mini-toggles select { flex: 1; }

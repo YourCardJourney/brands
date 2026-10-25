@@ -42,13 +42,15 @@
 <div class="filterbar">
   <div class="chiprow" id="typeRow" role="group" aria-label="Type"></div>
   <div class="chiprow" id="sizeRow" role="group" aria-label="Size" hidden></div>
-  <div class="chiprow" id="offRow" role="group" aria-label="Discount"></div>
+  <div class="chiprow offrow" id="offRow" role="group" aria-label="Discount">
+    <div class="offchips" id="offChips"></div>
+    <span class="tally" id="tally"></span>
+  </div>
 </div>
 
 <main>
 
   <div class="board-bar">
-    <span class="tally" id="tally"></span>
     <label class="switch coins"><input type="checkbox" id="coinsOn" checked><span class="track"></span><span>SuperCoins</span></label>
     <div class="mini-toggles">
       <label class="switch"><input type="checkbox" id="stockOnly" checked><span class="track"></span><span>In stock</span></label>

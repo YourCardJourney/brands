@@ -96,7 +96,7 @@
       return (!state.types.length || state.types.indexOf(p.type) >= 0) &&
         (!state.sizes.length || state.sizes.indexOf(p.size) >= 0);
     });
-    $("offRow").innerHTML =
+    $("offChips").innerHTML =
       '<span class="rowlabel">Discount</span>' +
       '<div class="seg tiny" id="offSeg" role="group" aria-label="Discount mode">' +
         '<button type="button" data-mode="ge" title="This much off or more" aria-pressed="' + (state.offMode === "ge") + '">≥</button>' +
