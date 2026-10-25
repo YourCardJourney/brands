@@ -82,7 +82,11 @@
       <button type="button" data-tab="image" aria-pressed="false">Image</button>
     </div>
     <div class="pane" id="paneImage" hidden>
-      <div class="meta"><span><b id="nImg">0</b> deals in the picture</span><span>1080 px wide</span></div>
+      <div class="seg tiny tabs" id="sizes" role="group" aria-label="Picture size">
+        <button type="button" data-size="portrait" aria-pressed="true">4:5 · WhatsApp / Insta / X</button>
+        <button type="button" data-size="wide" aria-pressed="false">16:9 · X wide</button>
+      </div>
+      <div class="meta"><span><b id="nImg">0</b> top deals in the picture</span><span id="dims">1080 × 1350</span></div>
       <img class="shot" id="shot" alt="Broadcast picture preview">
       <div class="row">
         <button class="act copy" id="share" type="button">
@@ -197,7 +201,13 @@
   // ---- the picture: same deals, same numbers, drawn on a canvas ----
   // Flipkart's image CDN sends Access-Control-Allow-Origin: *, so the photos
   // can be drawn without tainting the canvas.
-  var MAX_IMG = 10, tab = "text", picked = [], blob = null, timer = 0, token = 0, imgs = {};
+  // Standard post sizes: 4:5 sits whole in WhatsApp, Instagram and X on
+  // phones; 16:9 is X's uncropped wide card. Each holds a few deals, top first.
+  var SIZES = {
+    portrait: { W: 1080, H: 1350, cols: 2, n: 4, HEAD: 206, FOOT: 112, label: "4:5 · 4 deals" },
+    wide: { W: 1600, H: 900, cols: 3, n: 3, HEAD: 176, FOOT: 100, label: "16:9 · 3 deals" }
+  };
+  var size = "portrait", tab = "text", picked = [], blob = null, timer = 0, token = 0, imgs = {};
   function load(src) {
     if (!imgs[src]) imgs[src] = new Promise(function (ok) {
       var im = new Image(); im.crossOrigin = "anonymous";
@@ -222,10 +232,11 @@
   function schedule() { clearTimeout(timer); $("shot").classList.add("busy"); timer = setTimeout(draw, 220); }
 
   function draw() {
-    var me = ++token, list = picked.slice(0, MAX_IMG);
+    var L = SIZES[size], me = ++token, list = picked.slice(0, L.n);
     $("nImg").textContent = list.length;
-    var W = 1080, P = 48, G = 26, CW = (W - P * 2 - G) / 2, PH = 380, TH = 214, CH = PH + TH, HEAD = 236, FOOT = 132;
-    var rows = Math.max(1, Math.ceil(list.length / 2)), H = HEAD + rows * CH + (rows - 1) * G + 44 * 2 + FOOT;
+    var W = L.W, H = L.H, HEAD = L.HEAD, FOOT = L.FOOT, P = 44, G = 24, PADY = 30, TH = 178;
+    var rowsMax = Math.ceil(L.n / L.cols), CW = (W - P * 2 - G * (L.cols - 1)) / L.cols;
+    var CH = (H - HEAD - FOOT - PADY * 2 - G * (rowsMax - 1)) / rowsMax, PH = CH - TH;
     Promise.all([document.fonts ? document.fonts.ready : 0, load("/yourcardjourney.png")].concat(list.map(function (p) { return p.img ? load(p.img) : null; })))
       .then(function (got) {
         if (me !== token) return;
@@ -236,14 +247,15 @@
         // header band
         var g = c.createLinearGradient(0, 0, W, HEAD); g.addColorStop(0, "#f13ab1"); g.addColorStop(.5, "#ff3f6c"); g.addColorStop(1, "#fd913c");
         c.fillStyle = g; rr(c, 0, -40, W, HEAD + 40, 48); c.fill();
-        c.fillStyle = "rgba(255,255,255,.82)"; c.font = "800 26px " + F; c.fillText("FLIPKART  ·  PRICES WORKED OUT", P, 74);
-        c.fillStyle = "#fff"; c.font = "800 74px " + F; c.fillText("Mokobara deals", P, 150);
-        c.font = "600 27px " + F; c.fillStyle = "rgba(255,255,255,.92)";
+        c.fillStyle = "rgba(255,255,255,.82)"; c.font = "800 22px " + F; c.fillText("FLIPKART  ·  PRICES WORKED OUT", P, HEAD * .28);
+        c.fillStyle = "#fff"; c.font = "800 " + Math.round(HEAD * .31) + "px " + F; c.fillText("Mokobara deals", P, HEAD * .62);
+        c.font = "600 24px " + F; c.fillStyle = "rgba(255,255,255,.92)";
         c.fillText(fit(c, (state.card ? "With " + state.card + " card" : "No card offer") + "  ·  coupon + card offer included  ·  " +
-          new Date(updated).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }), W - P * 2), P, 198);
-        // one card per deal, numbered like the message
+          new Date(updated).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }), W - P * 2), P, HEAD * .84);
+        // one card per deal, numbered like the message; a short last row is centred
         list.forEach(function (p, i) {
-          var x = P + (i % 2) * (CW + G), y = HEAD + 44 + Math.floor(i / 2) * (CH + G);
+          var row = Math.floor(i / L.cols), inRow = Math.min(L.cols, list.length - row * L.cols);
+          var x = (W - (inRow * CW + (inRow - 1) * G)) / 2 + (i % L.cols) * (CW + G), y = HEAD + PADY + row * (CH + G);
           c.save(); c.shadowColor = "rgba(201,24,74,.12)"; c.shadowBlur = 30; c.shadowOffsetY = 8;
           c.fillStyle = "#fff"; rr(c, x, y, CW, CH, 30); c.fill(); c.restore();
           var im = photos[i];
@@ -257,25 +269,24 @@
           var off = pct(p) + "% OFF"; c.font = "800 26px " + F; var ow = c.measureText(off).width + 32;
           c.fillStyle = "#ff3f6c"; rr(c, x + CW - ow - 18, y + 20, ow, 50, 25); c.fill();
           c.fillStyle = "#fff"; c.fillText(off, x + CW - ow - 2, y + 54);
-          var ty = y + PH + 14;
-          c.fillStyle = "#efe7ee"; c.fillRect(x + 24, y + PH, CW - 48, 2);
-          c.fillStyle = "#1a1320"; c.font = "700 27px " + F;
-          wrap(c, p.title + (p.size ? " " + p.size : ""), CW - 48, 2).forEach(function (l, n) { c.fillText(l, x + 24, ty + 34 + n * 34); });
-          c.fillStyle = "#7a6f80"; c.font = "500 21px " + F; c.fillText(fit(c, p.colour || p.type, CW - 48), x + 24, ty + 102);
-          c.fillStyle = "#c9184a"; c.font = "800 50px " + F; var pr = inr(pay(p)); c.fillText(pr, x + 24, ty + 162);
-          var pw = c.measureText(pr).width, mrp = inr(p.mrp); c.fillStyle = "#9a8fa0"; c.font = "500 24px " + F;
-          c.fillText(mrp, x + 38 + pw, ty + 160); c.fillRect(x + 38 + pw, ty + 152, c.measureText(mrp).width, 2);
+          var ty = y + PH;
+          c.fillStyle = "#efe7ee"; c.fillRect(x + 24, ty, CW - 48, 2);
+          c.fillStyle = "#1a1320"; c.font = "700 26px " + F;
+          c.fillText(fit(c, p.title + (p.size ? " " + p.size : ""), CW - 48), x + 24, ty + 42);
+          c.fillStyle = "#7a6f80"; c.font = "500 20px " + F; c.fillText(fit(c, p.colour || p.type, CW - 48), x + 24, ty + 72);
+          c.fillStyle = "#c9184a"; c.font = "800 46px " + F; var pr = inr(pay(p)); c.fillText(pr, x + 24, ty + 126);
+          var pw = c.measureText(pr).width, mrp = inr(p.mrp); c.fillStyle = "#9a8fa0"; c.font = "500 23px " + F;
+          c.fillText(mrp, x + 38 + pw, ty + 124); c.fillRect(x + 38 + pw, ty + 116, c.measureText(mrp).width, 2);
           var bits = [], b = state.card ? (p.banks[state.card] || 0) : 0;
           if (p.coupon) bits.push("Coupon " + inr(p.coupon));
           if (b) bits.push(state.card + " " + inr(b));
-          if (bits.length) { c.fillStyle = "#5b3fd6"; c.font = "700 20px " + F; c.fillText(fit(c, bits.join("  +  "), CW - 48), x + 24, ty + 194); }
+          if (bits.length) { c.fillStyle = "#5b3fd6"; c.font = "700 19px " + F; c.fillText(fit(c, bits.join("  +  "), CW - 48), x + 24, ty + 160); }
         });
-        var fy = H - FOOT;
+        var fy = H - FOOT, ls = FOOT - 44, tx = P + (logo ? ls + 22 : 0);
         c.fillStyle = "#1f1235"; c.fillRect(0, fy, W, FOOT);
-        var tx = P + (logo ? 96 : 0);
-        if (logo) c.drawImage(logo, P, fy + 30, 72, 72);
-        c.fillStyle = "#fff"; c.font = "800 30px " + F; c.fillText("brands.yourcardjourney.store/mokobara", tx, fy + 62);
-        c.fillStyle = "rgba(255,255,255,.7)"; c.font = "600 22px " + F; c.fillText("Shared by @YourCardJourney  ·  buy links in the message", tx, fy + 96);
+        if (logo) c.drawImage(logo, P, fy + 22, ls, ls);
+        c.fillStyle = "#fff"; c.font = "800 28px " + F; c.fillText("brands.yourcardjourney.store/mokobara", tx, fy + FOOT * .46);
+        c.fillStyle = "rgba(255,255,255,.7)"; c.font = "600 20px " + F; c.fillText("Shared by @YourCardJourney  ·  buy links in the message", tx, fy + FOOT * .76);
         cv.toBlob(function (bl) {
           if (me !== token || !bl) return;
           blob = bl;
@@ -307,6 +318,13 @@
     this.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
     $("paneText").hidden = tab !== "text"; $("paneImage").hidden = tab !== "image";
     if (tab === "image") schedule();
+  });
+  $("sizes").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-size]"); if (!b) return;
+    size = b.dataset.size;
+    this.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+    $("dims").textContent = SIZES[size].W + " × " + SIZES[size].H;
+    schedule();
   });
   // Phones: the share sheet gets the picture with the message as its caption.
   // Laptops: copy the picture, then paste it into WhatsApp Web.
