@@ -19,6 +19,7 @@ var BR = (function () {
   // bank for HDFC. Drawn, never the bank's own logo.
   var BANKS = {
     "Flipkart Axis": S + '<path d="M5 8.5h14l-1.2 11.2a1.5 1.5 0 0 1-1.5 1.3H7.7a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M9 11V7a3 3 0 0 1 6 0v4"/></svg>',
+    "Flipkart SBI": S + '<path d="M5 8.5h14l-1.2 11.2a1.5 1.5 0 0 1-1.5 1.3H7.7a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M9 11V7a3 3 0 0 1 6 0v4"/></svg>',
     "HDFC": S + '<path d="M3.5 9 12 4l8.5 5zM5.5 9v8M9.8 9v8M14.2 9v8M18.5 9v8M3.5 20h17"/></svg>'
   };
   var TAG = '<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' +

@@ -34,9 +34,15 @@ STATE = "window.__INITIAL_STATE__ = "
 # Bank pills Flipkart shows, folded to one short name each. "Multiple Banks"
 # is not a card anyone holds, so it is dropped.
 BANKS = {"HDFC": "HDFC", "ICICI": "ICICI", "SBI": "SBI", "Axis": "Axis",
-         "Flipkart Axis": "Flipkart Axis", "Bank of Baroda": "BOB", "Kotak": "Kotak",
+         "Flipkart Axis": "Flipkart Axis", "Flipkart SBI": "Flipkart SBI", "Bank of Baroda": "BOB", "Kotak": "Kotak",
          "IDFC FIRST": "IDFC", "IDFC": "IDFC", "RBL": "RBL", "Yes Bank": "Yes", "AU": "AU",
          "OneCard": "OneCard", "Federal": "Federal", "IndusInd": "IndusInd", "HSBC": "HSBC"}
+
+
+# Offer kinds the parser understands. Anything else on a page (a SuperCoin
+# layer, say) is printed at the end of the run so it can be added.
+KNOWN_OFFERS = {"PBO", "EXCHANGE", "USER_COUPON_SELECTION"}
+NEW_OFFERS = set()
 
 
 def rupees(s):
@@ -74,7 +80,8 @@ def parse(html):
     st, _ = json.JSONDecoder().raw_decode(html[i:])
 
     ppd = find(st, lambda d: "fsp" in d and "mrp" in d) or {}
-    listed = int(ppd.get("finalPrice") or ppd.get("fsp") or 0)
+    # fsp drops below finalPrice when Flipkart runs a "special price" - take the lower
+    listed = min([int(v) for v in (ppd.get("fsp"), ppd.get("finalPrice")) if v] or [0])
     mrp = int(ppd.get("mrp") or listed)
 
     av = find(st, lambda d: "availabilityStatus" in d)
@@ -91,6 +98,8 @@ def parse(html):
             low = rupees(v.get("title"))
             for o in v.get("offerSummariesRC", []):
                 x = o.get("value", {})
+                if x.get("offerType") not in KNOWN_OFFERS:
+                    NEW_OFFERS.add(x.get("offerType"))
                 if x.get("offerType") == "USER_COUPON_SELECTION":
                     d = (x.get("offerSubTitleRC", {}).get("action", {}).get("params", {})
                          .get("offerBottomsheetDetails", {}).get("value", {}))
@@ -227,9 +236,7 @@ def refresh(slug):
         k = kind(p["name"])
         items.append(dict(id=p["id"], name=p["name"], title=title(p["name"], cat["name"]),
                           colour=colour(p["name"]), type=k, size=size(p["name"], k),
-                          url=p["link"], stale=r["seen"] != now,
-                          # account-level SuperCoin deal, mapped from the source sheet
-                          sc=p.get("sc", 0), scCoins=p.get("scCoins", 0), **r))
+                          url=p["link"], stale=r["seen"] != now, **r))
 
     os.makedirs(os.path.dirname(out_p), exist_ok=True)
     with io.open(out_p, "w", encoding="utf-8", newline="") as fh:
@@ -241,11 +248,9 @@ def refresh(slug):
 
 
 def best_pay(p):
-    """Mirrors brand.js pay() with SuperCoins on and the best card."""
+    """Mirrors brand.js pay() with the best card."""
     base = p["listed"] - p["coupon"]
-    after = base - p.get("sc", 0)
-    bank = max(p["banks"].values() or [0])
-    return after - (round(bank * after / base) if base > 0 else 0)
+    return base - max(p["banks"].values() or [0])
 
 
 def main():
@@ -267,6 +272,8 @@ def main():
     with io.open(summary_p, "w", encoding="utf-8", newline="") as fh:
         json.dump({"brands": sorted(summary.values(), key=lambda b: b["name"])}, fh,
                   ensure_ascii=False, indent=1)
+    if NEW_OFFERS:
+        print("NEW offer kinds on the pages (not priced yet): %s" % ", ".join(sorted(map(str, NEW_OFFERS))))
     # Nothing read at all means Flipkart turned us away - fail loudly so the
     # workflow shows red instead of quietly publishing yesterday's prices.
     return 0 if total_fresh else 1
