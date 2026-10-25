@@ -83,8 +83,8 @@
     </div>
     <div class="pane" id="paneImage" hidden>
       <div class="seg tiny tabs" id="sizes" role="group" aria-label="Picture size">
-        <button type="button" data-size="portrait" aria-pressed="true">4:5 · WhatsApp / Insta / X</button>
-        <button type="button" data-size="wide" aria-pressed="false">16:9 · X wide</button>
+        <button type="button" data-size="portrait" aria-pressed="true">4:5 · WhatsApp / Insta</button>
+        <button type="button" data-size="wide" aria-pressed="false">16:9 · X</button>
       </div>
       <div class="meta"><span><b id="nImg">0</b> top deals in the picture</span><span id="dims">1080 × 1350</span></div>
       <img class="shot" id="shot" alt="Broadcast picture preview">
@@ -202,10 +202,11 @@
   // Flipkart's image CDN sends Access-Control-Allow-Origin: *, so the photos
   // can be drawn without tainting the canvas.
   // Standard post sizes: 4:5 sits whole in WhatsApp, Instagram and X on
-  // phones; 16:9 is X's uncropped wide card. Each holds a few deals, top first.
+  // phones; 16:9 is X's uncropped wide card. Each holds the top 8 deals:
+  // 4:5 as 2 x 4 side cards (photo left), 16:9 as 4 x 2 stacked cards.
   var SIZES = {
-    portrait: { W: 1080, H: 1350, cols: 2, n: 4, HEAD: 206, FOOT: 112, label: "4:5 · 4 deals" },
-    wide: { W: 1600, H: 900, cols: 3, n: 3, HEAD: 176, FOOT: 100, label: "16:9 · 3 deals" }
+    portrait: { W: 1080, H: 1350, cols: 2, n: 8, HEAD: 176, FOOT: 96, side: true },
+    wide: { W: 1600, H: 900, cols: 4, n: 8, HEAD: 150, FOOT: 88, side: false }
   };
   var size = "portrait", tab = "text", picked = [], blob = null, timer = 0, token = 0, imgs = {};
   function load(src) {
@@ -234,9 +235,9 @@
   function draw() {
     var L = SIZES[size], me = ++token, list = picked.slice(0, L.n);
     $("nImg").textContent = list.length;
-    var W = L.W, H = L.H, HEAD = L.HEAD, FOOT = L.FOOT, P = 44, G = 24, PADY = 30, TH = 178;
+    var W = L.W, H = L.H, HEAD = L.HEAD, FOOT = L.FOOT, P = 40, G = 20, PADY = 24;
     var rowsMax = Math.ceil(L.n / L.cols), CW = (W - P * 2 - G * (L.cols - 1)) / L.cols;
-    var CH = (H - HEAD - FOOT - PADY * 2 - G * (rowsMax - 1)) / rowsMax, PH = CH - TH;
+    var CH = (H - HEAD - FOOT - PADY * 2 - G * (rowsMax - 1)) / rowsMax;
     Promise.all([document.fonts ? document.fonts.ready : 0, load("/yourcardjourney.png")].concat(list.map(function (p) { return p.img ? load(p.img) : null; })))
       .then(function (got) {
         if (me !== token) return;
@@ -256,31 +257,38 @@
         list.forEach(function (p, i) {
           var row = Math.floor(i / L.cols), inRow = Math.min(L.cols, list.length - row * L.cols);
           var x = (W - (inRow * CW + (inRow - 1) * G)) / 2 + (i % L.cols) * (CW + G), y = HEAD + PADY + row * (CH + G);
-          c.save(); c.shadowColor = "rgba(201,24,74,.12)"; c.shadowBlur = 30; c.shadowOffsetY = 8;
-          c.fillStyle = "#fff"; rr(c, x, y, CW, CH, 30); c.fill(); c.restore();
+          c.save(); c.shadowColor = "rgba(201,24,74,.12)"; c.shadowBlur = 24; c.shadowOffsetY = 6;
+          c.fillStyle = "#fff"; rr(c, x, y, CW, CH, 24); c.fill(); c.restore();
+          // photo box: square on the left (side) or a band across the top (stacked)
+          var bx = x + 10, by = y + 10, bw = L.side ? CH - 20 : CW - 20, bh = L.side ? CH - 20 : CH - 162;
+          c.fillStyle = "#faf6f8"; rr(c, bx, by, bw, bh, 18); c.fill();
           var im = photos[i];
           if (im) {
-            c.save(); rr(c, x, y, CW, PH, 30); c.clip();
-            var k = Math.min((CW - 40) / im.width, (PH - 30) / im.height), w = im.width * k, h = im.height * k;
-            c.drawImage(im, x + (CW - w) / 2, y + (PH - h) / 2 + 6, w, h); c.restore();
+            var k = Math.min((bw - 16) / im.width, (bh - 16) / im.height), w = im.width * k, h = im.height * k;
+            c.drawImage(im, bx + (bw - w) / 2, by + (bh - h) / 2, w, h);
           }
-          c.fillStyle = "#1f1235"; rr(c, x + 18, y + 18, 54, 54, 27); c.fill();
-          c.fillStyle = "#fff"; c.font = "800 26px " + F; c.textAlign = "center"; c.fillText(String(i + 1), x + 45, y + 54); c.textAlign = "left";
-          var off = pct(p) + "% OFF"; c.font = "800 26px " + F; var ow = c.measureText(off).width + 32;
-          c.fillStyle = "#ff3f6c"; rr(c, x + CW - ow - 18, y + 20, ow, 50, 25); c.fill();
-          c.fillStyle = "#fff"; c.fillText(off, x + CW - ow - 2, y + 54);
-          var ty = y + PH;
-          c.fillStyle = "#efe7ee"; c.fillRect(x + 24, ty, CW - 48, 2);
-          c.fillStyle = "#1a1320"; c.font = "700 26px " + F;
-          c.fillText(fit(c, p.title + (p.size ? " " + p.size : ""), CW - 48), x + 24, ty + 42);
-          c.fillStyle = "#7a6f80"; c.font = "500 20px " + F; c.fillText(fit(c, p.colour || p.type, CW - 48), x + 24, ty + 72);
-          c.fillStyle = "#c9184a"; c.font = "800 46px " + F; var pr = inr(pay(p)); c.fillText(pr, x + 24, ty + 126);
-          var pw = c.measureText(pr).width, mrp = inr(p.mrp); c.fillStyle = "#9a8fa0"; c.font = "500 23px " + F;
-          c.fillText(mrp, x + 38 + pw, ty + 124); c.fillRect(x + 38 + pw, ty + 116, c.measureText(mrp).width, 2);
+          c.fillStyle = "#1f1235"; rr(c, bx + 8, by + 8, 38, 38, 19); c.fill();
+          c.fillStyle = "#fff"; c.font = "800 20px " + F; c.textAlign = "center"; c.fillText(String(i + 1), bx + 27, by + 34); c.textAlign = "left";
+          var off = pct(p) + "% OFF"; c.font = "800 19px " + F; var ow = c.measureText(off).width + 22;
+          c.fillStyle = "#ff3f6c"; rr(c, bx + bw - ow - 8, by + 8, ow, 36, 18); c.fill();
+          c.fillStyle = "#fff"; c.fillText(off, bx + bw - ow + 3, by + 33);
+          // text: beside the photo (side) or under it (stacked)
+          var tx = L.side ? bx + bw + 18 : x + 20, tw = L.side ? x + CW - tx - 16 : CW - 40, ty = L.side ? y + 14 : by + bh + 6;
+          var name = p.title + (p.size ? " " + p.size : "");
+          c.fillStyle = "#1a1320"; c.font = "700 " + (L.side ? 22 : 21) + "px " + F;
+          var lines = L.side ? wrap(c, name, tw, 2) : [fit(c, name, tw)];
+          lines.forEach(function (l, n) { c.fillText(l, tx, ty + 26 + n * 27); });
+          var cy = ty + 26 + lines.length * 27;
+          c.fillStyle = "#7a6f80"; c.font = "500 17px " + F; c.fillText(fit(c, p.colour || p.type, tw), tx, cy);
+          c.fillStyle = "#c9184a"; c.font = "800 " + (L.side ? 40 : 36) + "px " + F; var pr = inr(pay(p)); c.fillText(pr, tx, cy + (L.side ? 50 : 44));
+          var pw = c.measureText(pr).width, mrp = inr(p.mrp); c.fillStyle = "#9a8fa0"; c.font = "500 18px " + F;
+          var mx = tx + pw + 10, my = cy + (L.side ? 48 : 42);
+          if (mx + c.measureText(mrp).width > tx + tw) { mx = tx; my = cy + (L.side ? 76 : 66); }
+          c.fillText(mrp, mx, my); c.fillRect(mx, my - 6, c.measureText(mrp).width, 1.5);
           var bits = [], b = state.card ? (p.banks[state.card] || 0) : 0;
           if (p.coupon) bits.push("Coupon " + inr(p.coupon));
           if (b) bits.push(state.card + " " + inr(b));
-          if (bits.length) { c.fillStyle = "#5b3fd6"; c.font = "700 19px " + F; c.fillText(fit(c, bits.join("  +  "), CW - 48), x + 24, ty + 160); }
+          if (bits.length) { c.fillStyle = "#5b3fd6"; c.font = "700 15px " + F; c.fillText(fit(c, bits.join(" + "), tw), tx, y + CH - (L.side ? 18 : 16)); }
         });
         var fy = H - FOOT, ls = FOOT - 44, tx = P + (logo ? ls + 22 : 0);
         c.fillStyle = "#1f1235"; c.fillRect(0, fy, W, FOOT);

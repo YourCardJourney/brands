@@ -11,7 +11,7 @@
   var items = [], cards = [];
   var state = {
     card: BR.load(SLUG + ".card", null), types: [], sizes: [],
-    off: null, offMode: "ge", stock: true, sort: BR.load("sort", "save"), view: BR.load("view", "tiles")
+    off: null, offMode: "ge", top: 0, one: false, stock: true, sort: BR.load("sort", "save"), view: BR.load("view", "tiles")
   };
 
   // ---- the maths ----
@@ -149,10 +149,24 @@
     high: function (a, b) { return pay(b) - pay(a); }
   };
 
+  // Show: keep only the best N, and/or the first colour of each model+size
+  // (after sorting, so the one kept is the best of its model).
+  function renderShow() {
+    $("showChips").innerHTML = chip("All", !state.top, null, null, "sm", "data-top", "0") +
+      [5, 10, 15, 20].map(function (n) { return chip("Top " + n, state.top === n, null, null, "sm", "data-top", n); }).join("") +
+      chip("One per model", state.one, null, null, "sm", "data-one", "1");
+  }
+
   function render() {
     renderOff();
+    renderShow();
     var list = filtered();
     list.sort(SORTS[state.sort]);
+    if (state.one) {
+      var seen = {};
+      list = list.filter(function (p) { var k = p.title + "|" + p.size; if (seen[k]) return false; seen[k] = 1; return true; });
+    }
+    if (state.top) list = list.slice(0, state.top);
     $("grid").className = "grid" + (state.view === "list" ? " list" : "");
     $("grid").innerHTML = list.map(card).join("");
     $("empty").hidden = list.length > 0;
@@ -183,6 +197,12 @@
       var b = e.target.closest("[data-off]"); if (!b) return;
       var n = b.dataset.off === "" ? null : +b.dataset.off;
       state.off = state.off === n ? null : n; render();
+    };
+    $("showRow").onclick = function (e) {
+      var b = e.target.closest("[data-top],[data-one]"); if (!b) return;
+      if (b.dataset.one != null) state.one = !state.one;
+      else { var n = +b.dataset.top; state.top = state.top === n ? 0 : n; }
+      render();
     };
     $("stockOnly").onchange = function () { state.stock = this.checked; renderChips(); render(); };
     $("sortSel").value = state.sort;
