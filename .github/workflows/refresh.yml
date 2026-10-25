@@ -53,10 +53,10 @@ jobs:
           git add site/brands.json site/*/products.json
           git diff --cached --quiet || { git commit -m "Prices $(date -u +'%Y-%m-%d %H:%M') UTC"; git push; }
       - name: Stamp asset versions
-        # ?v= = last commit that touched the shared JS/CSS, so browsers drop a
-        # stale copy the moment the code changes (not on every price refresh)
+        # ?v= = hash of the shared JS/CSS, so browsers drop a stale copy the
+        # moment the code changes (not on every price refresh)
         run: |
-          v=$(git log -1 --format=%h -- site/app.css site/common.js site/brand.js)
+          v=$(cat site/app.css site/common.js site/brand.js | sha1sum | cut -c1-10)
           sed -i "s/?v=[0-9a-z]*\"/?v=$v\"/g" site/index.html site/*/index.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
