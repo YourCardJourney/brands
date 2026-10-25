@@ -1,5 +1,7 @@
-# Brands - read every product page on Flipkart twice a day (9 AM and 9 PM IST),
-# commit the new prices, and publish site/ to GitHub Pages.
+# Brands - read every product page on Flipkart every 90 minutes, commit the new
+# prices, and publish site/ to GitHub Pages. The repo is public, so Actions
+# minutes are free. GitHub's own cron runs hours late, so a cron-job.org job
+# fires the repository_dispatch "tick" on time; the crons below are a fallback.
 #
 # A page that fails to read keeps its last good price (tools/scrape.py), so a
 # bad run never blanks the board. If nothing at all could be read the run goes
@@ -8,9 +10,11 @@
 name: Refresh
 
 on:
+  repository_dispatch:
+    types: [tick]
   schedule:
-    - cron: "30 3 * * *"    # 09:00 IST
-    - cron: "30 15 * * *"   # 21:00 IST
+    - cron: "15 0-21/3 * * *"   # with the line below = every 90 min
+    - cron: "45 1-22/3 * * *"
   workflow_dispatch:
   push:
     branches: [main]

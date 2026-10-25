@@ -102,10 +102,15 @@ def parse(html):
                     if name and amt:
                         banks[name] = max(banks.get(name, 0), amt)
 
+    # Sold out: Flipkart hides the price and shows "Notify Me" instead
+    soldout = not listed and "NOTIFY_ME" in html
+    if soldout:
+        stock = False
+
     m = re.search(r'og:image" content="([^"]+)', html)
     img = m.group(1).replace("/1500/1500/", "/416/416/") if m else ""
     return {"mrp": mrp, "listed": listed, "coupon": coupon, "banks": banks,
-            "low": low, "stock": stock, "img": img}
+            "low": low, "stock": stock, "img": img, "full": bool(nep) or not stock, "soldout": soldout}
 
 
 # ---- name parsing (the catalogue names are Flipkart titles) ----
@@ -177,11 +182,42 @@ def refresh(slug):
     with ThreadPoolExecutor(6) as ex:
         reads = list(ex.map(one, cat["products"]))
 
+    def ok(r):
+        return r and (r["listed"] or r["soldout"]) and r["full"]
+
+    # Second chance, one page at a time: anything that failed, or came back
+    # in stock without its offers block, is read again so no offer is missed.
+    for rnd in range(3):
+        miss = [i for i, r in enumerate(reads) if not ok(r)]
+        if not miss:
+            break
+        print("  retry round %d: %d pages" % (rnd + 1, len(miss)))
+        time.sleep(10 + rnd * 10)
+        for i in miss:
+            r = one(cat["products"][i])
+            if r and (r["listed"] or r["soldout"]) and (r["full"] or not reads[i]):
+                reads[i] = r
+            time.sleep(2)
+    for i, r in enumerate(reads):
+        if r and not r["full"]:
+            print("  no offers block %s" % cat["products"][i]["id"])
+        if r:
+            r.pop("full")
+            if r.pop("soldout"):
+                r = reads[i] = {"soldout": True}
+
     items, fresh = [], 0
     now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     for p, r in zip(cat["products"], reads):
         prev = old.get(p["id"])
-        if r and r["listed"]:
+        if r and r.get("soldout"):
+            if not prev:
+                continue
+            # keep the last prices for reference, but show it as sold out
+            fresh += 1
+            r = {k: prev[k] for k in ("mrp", "listed", "coupon", "banks", "low", "img")}
+            r.update(stock=False, seen=now)
+        elif r and r["listed"]:
             fresh += 1
             r["seen"] = now
         elif prev:
