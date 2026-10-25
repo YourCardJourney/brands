@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Broadcast | YourCardJourney Brands</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#c9184a">
+  <link rel="icon" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/app.css" />
+  <style>
+    /* Unlisted composer: pick the deals, copy one WhatsApp-ready message.
+       Prices use the coupon each product page shows (never an assumed one). */
+    .bc { max-width: 1240px; margin: 0 auto; padding: 14px 24px 40px; display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 22px; align-items: start; }
+    .bc h1 { font-size: 20px; font-weight: 800; letter-spacing: -.01em; margin: 0 0 2px; }
+    .bc .sub { color: var(--ink-2); font-size: 13px; margin: 0 0 12px; }
+    .ctl { display: grid; grid-template-columns: 76px minmax(0, 1fr); align-items: center; column-gap: 14px; padding: 9px 0; border-top: 1px solid var(--line); }
+    .ctl .rowbody { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .pick { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+    .pick li { display: grid; grid-template-columns: 22px 52px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 8px 12px 8px 10px; border: 1px solid var(--line); border-radius: 16px; background: var(--s1); cursor: pointer; transition: border-color .15s, background .15s, opacity .15s; }
+    .pick li.off { opacity: .45; }
+    .pick li:not(.off) { border-color: color-mix(in srgb, var(--pri) 28%, var(--line)); }
+    .pick input { width: 18px; height: 18px; accent-color: var(--pri); margin: 0; }
+    .pick img { width: 52px; height: 52px; border-radius: 12px; object-fit: cover; background: var(--s2); }
+    .pick .t { font-weight: 700; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pick .m { color: var(--ink-2); font-size: 12px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+    .pick .p { text-align: right; font-variant-numeric: tabular-nums; }
+    .pick .p b { display: block; font-size: 16px; font-weight: 800; }
+    .pick .p span { font-size: 11.5px; font-weight: 800; color: var(--pri); }
+    .side { position: sticky; top: 76px; border: 1px solid var(--line); border-radius: 22px; background: var(--s1); padding: 14px; box-shadow: var(--shadow-1); }
+    .side textarea { width: 100%; box-sizing: border-box; min-height: 420px; resize: vertical; border: 1px solid var(--line); border-radius: 14px; padding: 12px; background: var(--s2); color: var(--ink); font: 500 12.5px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace; }
+    .side .row { display: flex; gap: 8px; margin-top: 10px; }
+    .act { flex: 1; display: inline-flex; justify-content: center; align-items: center; gap: 8px; border: 0; border-radius: 999px; padding: 11px 14px; font: 800 14px var(--font, Inter, sans-serif); cursor: pointer; text-decoration: none; transition: transform .12s, background .2s; }
+    .act:active { transform: scale(.97); }
+    .act.copy { background: var(--pri); color: #fff; }
+    .act.copy.done { background: #16a34a; }
+    .act.wa { background: #25d366; color: #073b1d; }
+    .act svg { width: 17px; height: 17px; }
+    .act .ok { display: none; } .act.done .ok { display: block; } .act.done .ic { display: none; }
+    .side .meta { display: flex; justify-content: space-between; color: var(--ink-2); font-size: 12px; margin: 0 2px 8px; }
+    .side .meta b { color: var(--ink); }
+    @media (max-width: 900px) { .bc { grid-template-columns: 1fr; } .side { position: static; } .side textarea { min-height: 300px; } }
+    @media (max-width: 600px) { .bc { padding: 10px 16px 32px; } .ctl { grid-template-columns: 64px minmax(0, 1fr); } .pick li { grid-template-columns: 20px 44px minmax(0, 1fr) auto; gap: 10px; } .pick img { width: 44px; height: 44px; } }
+  </style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="/">
+      <span class="brand-mark" id="mark"></span>
+      <span class="brand-name">Brands</span>
+    </a>
+    <span class="crumb"><span>BROADCAST</span></span>
+  </div>
+</header>
+
+<div class="bc">
+  <section>
+    <h1>Mokobara · top deals</h1>
+    <p class="sub" id="fresh">Loading…</p>
+
+    <div class="ctl"><span class="rowlabel">Card</span><div class="rowbody seg" id="card"></div></div>
+    <div class="ctl"><span class="rowlabel">Discount</span><div class="rowbody" id="min"></div></div>
+    <div class="ctl"><span class="rowlabel">Type</span><div class="rowbody" id="type"></div></div>
+    <div class="ctl"><span class="rowlabel">Show</span><div class="rowbody" id="top"></div></div>
+
+    <ul class="pick" id="list"></ul>
+  </section>
+
+  <aside class="side">
+    <div class="meta"><span><b id="nSel">0</b> deals in the message</span><span id="nChars"></span></div>
+    <textarea id="msg" spellcheck="false" aria-label="WhatsApp message"></textarea>
+    <div class="row">
+      <button class="act copy" id="copy" type="button">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
+        <svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+        Copy
+      </button>
+      <a class="act wa" id="wa" href="#" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.3-.4.8-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 11.9 11.9 0 0 0 4.6 4c1.7.7 2.4.8 3.2.7a2.8 2.8 0 0 0 1.8-1.3 2.3 2.3 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg>
+        WhatsApp
+      </a>
+    </div>
+  </aside>
+</div>
+
+<script src="/common.js"></script>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var inr = BR.inr, esc = BR.esc;
+  var state = { card: "HDFC", min: 50, type: "", top: 10, one: true, off: {} };
+  var items = [], updated = "";
+
+  function pay(p) { return p.listed - (p.coupon || 0) - (state.card ? (p.banks[state.card] || 0) : 0); }
+  function pct(p) { return p.mrp > 0 ? Math.round((p.mrp - pay(p)) / p.mrp * 100) : 0; }
+
+  function chip(label, on, attr, val, count) {
+    return '<button type="button" class="chip sm' + (on ? " is-active" : "") + '" ' + attr + '="' + esc(val) + '"><span>' + esc(label) + "</span>" +
+      (count != null ? '<span class="count">' + count + "</span>" : "") + "</button>";
+  }
+
+  // best-first; "one per model" keeps the cheapest colour of each model+size
+  function ranked() {
+    var list = items.filter(function (p) { return p.stock && (!state.type || p.type === state.type) && pct(p) >= state.min; });
+    list.sort(function (a, b) { return pct(b) - pct(a) || pay(a) - pay(b); });
+    if (state.one) {
+      var seen = {};
+      list = list.filter(function (p) { var k = p.title + "|" + p.size; if (seen[k]) return false; seen[k] = 1; return true; });
+    }
+    return list.slice(0, state.top);
+  }
+
+  function line(p, i) {
+    var parts = [];
+    if (p.coupon) parts.push("coupon " + inr(p.coupon));
+    var b = state.card ? (p.banks[state.card] || 0) : 0;
+    if (b) parts.push(state.card + " " + inr(b));
+    return (i + 1) + ". *" + p.title + (p.size ? " " + p.size : "") + "*" + (p.colour ? " (" + p.colour + ")" : "") + "\n" +
+      "   👉 *" + inr(pay(p)) + "* · " + pct(p) + "% off " + inr(p.mrp) + (parts.length ? "\n   " + parts.join(" + ") : "") + "\n" +
+      "   " + p.url;
+  }
+
+  function render() {
+    var cards = {};
+    items.forEach(function (p) { Object.keys(p.banks).forEach(function (c) { cards[c] = (cards[c] || 0) + 1; }); });
+    $("card").innerHTML = ["", "HDFC"].concat(Object.keys(cards).filter(function (c) { return c !== "HDFC"; }).sort(function (a, b) { return cards[b] - cards[a]; }))
+      .map(function (c) { return '<button type="button" data-card="' + esc(c) + '" aria-pressed="' + (state.card === c) + '">' + (c || "No card") + "</button>"; }).join("");
+
+    var base = items.filter(function (p) { return p.stock && (!state.type || p.type === state.type); });
+    $("min").innerHTML = [0, 40, 50, 60, 70].map(function (n) {
+      return chip(n ? "≥ " + n + "%" : "Any", state.min === n, "data-min", n, base.filter(function (p) { return pct(p) >= n; }).length);
+    }).join("");
+
+    var types = {};
+    items.forEach(function (p) { if (p.stock) types[p.type] = (types[p.type] || 0) + 1; });
+    $("type").innerHTML = chip("All", !state.type, "data-type", "") +
+      Object.keys(types).sort(function (a, b) { return types[b] - types[a]; }).map(function (t) { return chip(t, state.type === t, "data-type", t, types[t]); }).join("");
+
+    $("top").innerHTML = [5, 10, 15, 20].map(function (n) { return chip("Top " + n, state.top === n, "data-top", n); }).join("") +
+      chip("One per model", state.one, "data-one", "1");
+
+    var list = ranked();
+    $("list").innerHTML = list.map(function (p) {
+      var on = !state.off[p.id];
+      return '<li class="' + (on ? "" : "off") + '" data-id="' + esc(p.id) + '"><input type="checkbox"' + (on ? " checked" : "") + ' tabindex="-1">' +
+        (p.img ? '<img src="' + esc(p.img) + '" alt="" loading="lazy">' : "<span></span>") +
+        '<div><div class="t">' + esc(p.title) + (p.size ? " " + esc(p.size) : "") + '</div><div class="m">' + esc(p.colour || p.type) +
+        (p.coupon ? " · coupon " + inr(p.coupon) : "") + '</div></div>' +
+        '<div class="p"><b>' + inr(pay(p)) + "</b><span>" + pct(p) + "% off</span></div></li>";
+    }).join("") || '<li class="off"><span></span><span></span><div class="t">Nothing at this discount — loosen a filter.</div></li>';
+
+    var pick = list.filter(function (p) { return !state.off[p.id]; });
+    var head = "🧳 *Mokobara deals on Flipkart*" + (state.card ? " — with " + state.card + " card" : "") + "\n" +
+      "Prices worked out: coupon + card offer, live " + BR.ago(updated) + "\n";
+    var msg = head + "\n" + pick.map(line).join("\n\n") +
+      "\n\nAll deals 👉 https://brands.yourcardjourney.store/mokobara/\nShared by @YourCardJourney";
+    $("msg").value = msg;
+    $("nSel").textContent = pick.length;
+    $("nChars").textContent = msg.length + " chars";
+    $("wa").href = "https://wa.me/?text=" + encodeURIComponent(msg);
+  }
+
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-card],button[data-min],button[data-type],button[data-top],button[data-one],li[data-id]");
+    if (!b) return;
+    if (b.dataset.card != null) state.card = b.dataset.card;
+    else if (b.dataset.min != null) state.min = +b.dataset.min;
+    else if (b.dataset.type != null) state.type = b.dataset.type;
+    else if (b.dataset.top != null) state.top = +b.dataset.top;
+    else if (b.dataset.one != null) state.one = !state.one;
+    else if (b.dataset.id) state.off[b.dataset.id] = !state.off[b.dataset.id];
+    render();
+  });
+  $("msg").addEventListener("input", function () {
+    $("nChars").textContent = this.value.length + " chars";
+    $("wa").href = "https://wa.me/?text=" + encodeURIComponent(this.value);
+  });
+  $("copy").addEventListener("click", function () {
+    var btn = this, done = function () { btn.classList.add("done"); setTimeout(function () { btn.classList.remove("done"); }, 1400); };
+    if (navigator.clipboard) navigator.clipboard.writeText($("msg").value).then(done, function () { $("msg").select(); document.execCommand("copy"); done(); });
+    else { $("msg").select(); document.execCommand("copy"); done(); }
+  });
+
+  $("mark").innerHTML = BR.TAG;
+  fetch("/mokobara/products.json", { cache: "no-cache" }).then(function (r) { return r.json(); }).then(function (d) {
+    items = d.items || []; updated = d.updated;
+    $("fresh").innerHTML = '<span class="fresh-dot"></span>Prices read from Flipkart ' + BR.ago(updated) + " · every link is our ExtraPe affiliate link";
+    render();
+  });
+})();
+</script>
+</body>
+</html>
