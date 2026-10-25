@@ -17,8 +17,13 @@
   // ---- the maths ----
   // Everything comes off the product page as Flipkart shows it: listed price,
   // the coupon, then the picked card's ₹ off.
+  // The ₹1,000 coupon runs on every product, so it is applied even where a
+  // read missed it. SuperCoins (3x-10x, ₹300-1,000) vary by account, so they
+  // are shown as an extra on top, never folded into the price.
+  var COUPON = 1000, SC_LO = 300, SC_HI = 1000;
+  function cpn(p) { return Math.max(p.coupon || 0, COUPON); }
   function bankOff(p) { return state.card ? (p.banks[state.card] || 0) : 0; }
-  function pay(p) { return p.listed - p.coupon - bankOff(p); }
+  function pay(p) { return p.listed - cpn(p) - bankOff(p); }
   function saved(p) { return p.mrp - pay(p); }
   function pct(p) { return p.mrp > 0 ? Math.max(0, Math.round(saved(p) / p.mrp * 100)) : 0; }
 
@@ -108,14 +113,14 @@
     var flip = p.mrp - p.listed, b = bankOff(p);
     var s = "";
     if (flip > 0) s += '<span class="f">Flipkart <b>−' + inr(flip) + "</b></span>";
-    if (p.coupon) s += '<span class="c">Coupon <b>−' + inr(p.coupon) + "</b></span>";
+    s += '<span class="c">Coupon <b>−' + inr(cpn(p)) + "</b></span>";
     if (b) s += '<span class="b">' + esc(state.card) + " <b>−" + inr(b) + "</b></span>";
     return s;
   }
   function bar(p) {
     var flip = Math.max(0, p.mrp - p.listed), b = bankOff(p);
     return '<div class="split" aria-hidden="true"><i class="p" style="flex-grow:' + pay(p) + '"></i>' +
-      '<i class="f" style="flex-grow:' + flip + '"></i><i class="c" style="flex-grow:' + p.coupon + '"></i>' +
+      '<i class="f" style="flex-grow:' + flip + '"></i><i class="c" style="flex-grow:' + cpn(p) + '"></i>' +
       '<i class="b" style="flex-grow:' + b + '"></i></div>';
   }
   var ARROW = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>';
@@ -131,6 +136,7 @@
         '<div class="head"><h3 class="name" title="' + esc(p.name) + '">' + esc(p.title) + "</h3>" +
         '<div class="meta">' + (meta || "&nbsp;") + "</div></div>" +
         '<div class="price"><span class="now">' + inr(pay(p)) + "</span>" + (p.mrp > pay(p) ? "<s>" + inr(p.mrp) + "</s>" : "") + "</div>" +
+        '<div class="scx"><span class="coin">SC</span>+ SuperCoins 3x–10x: ' + inr(Math.max(0, pay(p) - SC_HI)) + "–" + inr(Math.max(0, pay(p) - SC_LO)) + "</div>" +
         '<div class="mathcol">' + bar(p) + '<div class="steps">' + steps(p) + "</div></div>" +
         '<a class="buy" href="' + esc(p.url) + '" target="_blank" rel="noopener sponsored">Buy ' + ARROW + "</a>" +
       "</div></article>";
