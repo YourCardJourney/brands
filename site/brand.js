@@ -5,12 +5,13 @@
   var $ = function (id) { return document.getElementById(id); };
   var inr = BR.inr, esc = BR.esc;
   var SLUG = document.body.dataset.brand;
+  var OFF_STEPS = [40, 50, 60, 70];
   var TYPE_ORDER = ["Cabin", "Check-in", "Sets", "Backpacks", "Totes & bags", "Messengers", "Wallets"];
 
   var items = [], cards = [];
   var state = {
     card: BR.load(SLUG + ".card", null), coins: BR.load("coins", true), types: [], sizes: [],
-    stock: true, sort: BR.load("sort", "save"), view: BR.load("view", "tiles")
+    off: null, offMode: "ge", stock: true, sort: BR.load("sort", "save"), view: BR.load("view", "tiles")
   };
 
   // ---- the maths ----
@@ -25,6 +26,8 @@
   function saved(p) { return p.mrp - pay(p); }
   function pct(p) { return p.mrp > 0 ? Math.max(0, Math.round(saved(p) / p.mrp * 100)) : 0; }
 
+  function offOk(p, n) { return state.offMode === "ge" ? pct(p) >= n : pct(p) <= n; }
+
   function pool() {
     return items.filter(function (p) { return !state.stock || p.stock; });
   }
@@ -32,6 +35,7 @@
     return pool().filter(function (p) {
       if (state.types.length && state.types.indexOf(p.type) < 0) return false;
       if (state.sizes.length && state.sizes.indexOf(p.size) < 0) return false;
+      if (state.off !== null && !offOk(p, state.off)) return false;
       return true;
     });
   }
@@ -83,6 +87,25 @@
       sizes.map(function (s) { return chip(s, state.sizes.indexOf(s) >= 0, null, bySize[s], "sm", "data-size", s); }).join("");
   }
 
+  // Discount: ≥ or ≤ a step, counted against the type/size picks and the
+  // card in the deal bar, so the numbers move with every other choice.
+  function renderOff() {
+    var base = pool().filter(function (p) {
+      return (!state.types.length || state.types.indexOf(p.type) >= 0) &&
+        (!state.sizes.length || state.sizes.indexOf(p.size) >= 0);
+    });
+    $("offRow").innerHTML =
+      '<span class="rowlabel">Discount</span>' +
+      '<div class="seg tiny" id="offSeg" role="group" aria-label="Discount mode">' +
+        '<button type="button" data-mode="ge" title="This much off or more" aria-pressed="' + (state.offMode === "ge") + '">≥</button>' +
+        '<button type="button" data-mode="le" title="This much off or less" aria-pressed="' + (state.offMode === "le") + '">≤</button></div>' +
+      chip("Any", state.off === null, null, null, "sm", "data-off", "") +
+      OFF_STEPS.map(function (n) {
+        var c = base.filter(function (p) { return offOk(p, n); }).length;
+        return chip((state.offMode === "ge" ? "≥ " : "≤ ") + n + "%", state.off === n, null, c, "sm", "data-off", n);
+      }).join("");
+  }
+
   // ---- tiles ----
   function steps(p) {
     var flip = p.mrp - p.listed, b = bankOff(p);
@@ -125,6 +148,7 @@
   };
 
   function render() {
+    renderOff();
     var list = filtered();
     list.sort(SORTS[state.sort]);
     $("grid").className = "grid" + (state.view === "list" ? " list" : "");
@@ -152,6 +176,13 @@
       var s = b.dataset.size, i = state.sizes.indexOf(s);
       if (!s) state.sizes = []; else if (i >= 0) state.sizes.splice(i, 1); else state.sizes.push(s);
       renderChips(); render();
+    };
+    $("offRow").onclick = function (e) {
+      var m = e.target.closest("[data-mode]");
+      if (m) { state.offMode = m.dataset.mode; render(); return; }
+      var b = e.target.closest("[data-off]"); if (!b) return;
+      var n = b.dataset.off === "" ? null : +b.dataset.off;
+      state.off = state.off === n ? null : n; render();
     };
     $("stockOnly").onchange = function () { state.stock = this.checked; renderChips(); render(); };
     $("sortSel").value = state.sort;
