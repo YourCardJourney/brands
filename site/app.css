@@ -156,7 +156,8 @@ button { cursor: pointer; }
   box-shadow: 0 4px 10px -3px var(--glow), inset 0 1px 0 rgba(255,255,255,.35);
 }
 /* bank picker: every bank on show, each with its own drawn mark */
-.seg.banks { overflow: visible; }
+.seg.banks { min-width: 0; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scroll-behavior: smooth; }
+.dealbar-inner { min-width: 0; }
 .seg.banks button { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; }
 .seg.banks .bk { width: 16px; height: 16px; flex: none; color: var(--pri); }
 .seg.banks button[aria-pressed="true"] .bk { color: #fff; }

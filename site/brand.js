@@ -61,7 +61,10 @@
     $("cardSeg").innerHTML = ['<button type="button" data-card="">None</button>'].concat(cards.map(function (c) {
       return '<button type="button" data-card="' + esc(c) + '">' + (BR.BANKS[c] ? '<span class="bk">' + BR.BANKS[c] + "</span>" : "") + esc(c) + "</button>";
     })).join("");
-    press($("cardSeg"), $("cardSeg").querySelector('[data-card="' + state.card + '"]'));
+    var on = $("cardSeg").querySelector('[data-card="' + state.card + '"]');
+    press($("cardSeg"), on);
+    // on a phone the bar scrolls inside itself; bring the picked card into view
+    if (on) $("cardSeg").scrollLeft = Math.max(0, on.offsetLeft - 8);
   }
 
   function chip(label, on, glyph, count, cls, attr, val) {
