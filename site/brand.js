@@ -26,7 +26,9 @@
   function saved(p) { return p.mrp - pay(p); }
   function pct(p) { return p.mrp > 0 ? Math.max(0, Math.round(saved(p) / p.mrp * 100)) : 0; }
 
-  function offOk(p, n) { return state.offMode === "ge" ? pct(p) >= n : pct(p) <= n; }
+  // "≥ 50%" = 50% off and up; "= 50%" = the 50s band (50-59%), since an
+  // exact whole percent would match almost nothing
+  function offOk(p, n) { var v = pct(p); return state.offMode === "ge" ? v >= n : v >= n && v < n + 10; }
 
   function pool() {
     return items.filter(function (p) { return !state.stock || p.stock; });
@@ -87,7 +89,7 @@
       sizes.map(function (s) { return chip(s, state.sizes.indexOf(s) >= 0, null, bySize[s], "sm", "data-size", s); }).join("");
   }
 
-  // Discount: ≥ or ≤ a step, counted against the type/size picks and the
+  // Discount: ≥ or = a step (the BlinkDeal weight switch), counted against the type/size picks and the
   // card in the deal bar, so the numbers move with every other choice.
   function renderOff() {
     var base = pool().filter(function (p) {
@@ -98,11 +100,11 @@
       '<span class="rowlabel">Discount</span>' +
       '<div class="seg tiny" id="offSeg" role="group" aria-label="Discount mode">' +
         '<button type="button" data-mode="ge" title="This much off or more" aria-pressed="' + (state.offMode === "ge") + '">≥</button>' +
-        '<button type="button" data-mode="le" title="This much off or less" aria-pressed="' + (state.offMode === "le") + '">≤</button></div>' +
+        '<button type="button" data-mode="eq" title="In this band, e.g. = 50% is 50-59% off" aria-pressed="' + (state.offMode === "eq") + '">=</button></div>' +
       chip("Any", state.off === null, null, null, "sm", "data-off", "") +
       OFF_STEPS.map(function (n) {
         var c = base.filter(function (p) { return offOk(p, n); }).length;
-        return chip((state.offMode === "ge" ? "≥ " : "≤ ") + n + "%", state.off === n, null, c, "sm", "data-off", n);
+        return chip((state.offMode === "ge" ? "≥ " : "") + n + "%", state.off === n, null, c, "sm", "data-off", n);
       }).join("");
   }
 
