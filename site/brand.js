@@ -17,11 +17,11 @@
   // ---- the maths ----
   // Everything comes off the product page as Flipkart shows it: listed price,
   // the coupon, then the picked card's ₹ off.
-  // The ₹1,000 coupon runs on every product, so it is applied even where a
-  // read missed it. SuperCoins (3x-10x, ₹300-1,000) vary by account, so they
-  // are shown as an extra on top, never folded into the price.
-  var COUPON = 1000, SC_LO = 300, SC_HI = 1000;
-  function cpn(p) { return Math.max(p.coupon || 0, COUPON); }
+  // Coupon = exactly what the product page shows (none = none), so the price
+  // matches Flipkart's own "Buy at". SuperCoins (3x-10x, ₹300-1,000) vary by
+  // account, so they are shown as an extra on top, never folded into the price.
+  var SC_LO = 300, SC_HI = 1000;
+  function cpn(p) { return p.coupon || 0; }
   function bankOff(p) { return state.card ? (p.banks[state.card] || 0) : 0; }
   function pay(p) { return p.listed - cpn(p) - bankOff(p); }
   function saved(p) { return p.mrp - pay(p); }
@@ -113,7 +113,7 @@
     var flip = p.mrp - p.listed, b = bankOff(p);
     var s = "";
     if (flip > 0) s += '<span class="f">Flipkart <b>−' + inr(flip) + "</b></span>";
-    s += '<span class="c">Coupon <b>−' + inr(cpn(p)) + "</b></span>";
+    if (cpn(p)) s += '<span class="c">Coupon <b>−' + inr(cpn(p)) + "</b></span>";
     if (b) s += '<span class="b">' + esc(state.card) + " <b>−" + inr(b) + "</b></span>";
     return s;
   }

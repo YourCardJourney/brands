@@ -188,7 +188,7 @@ def refresh(slug):
             return None
 
     started = time.time()
-    with ThreadPoolExecutor(6) as ex:
+    with ThreadPoolExecutor(12) as ex:
         reads = list(ex.map(one, cat["products"]))
 
     def ok(r):
