@@ -52,7 +52,7 @@
       state.card = cards.slice().sort(function (a, b) { return tot[b] - tot[a]; })[0] || "";
     }
     $("cardSeg").innerHTML = ['<button type="button" data-card="">None</button>'].concat(cards.map(function (c) {
-      return '<button type="button" data-card="' + esc(c) + '">' + esc(c) + "</button>";
+      return '<button type="button" data-card="' + esc(c) + '">' + (BR.BANKS[c] ? '<span class="bk">' + BR.BANKS[c] + "</span>" : "") + esc(c) + "</button>";
     })).join("");
     press($("cardSeg"), $("cardSeg").querySelector('[data-card="' + state.card + '"]'));
   }

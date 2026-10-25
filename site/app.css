@@ -72,9 +72,7 @@ button { cursor: pointer; }
   width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center;
   background: var(--mark-grad); box-shadow: 0 6px 16px -6px var(--glow);
 }
-.brand-text { display: flex; flex-direction: column; line-height: 1; }
-.brand-tag { font-size: 8.5px; font-weight: 800; letter-spacing: 1.4px; color: var(--mute); }
-.brand-name { font-size: 19px; font-weight: 800; letter-spacing: -.02em; margin-top: 3px; }
+.brand-name { font-size: 19px; font-weight: 800; letter-spacing: -.02em; line-height: 1; }
 .back {
   width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
   border: 1px solid var(--line); background: var(--s1); color: var(--ink-2);
@@ -142,7 +140,6 @@ button { cursor: pointer; }
   border-bottom: 1px solid var(--line);
 }
 .dealbar-inner { max-width: 1240px; margin: 0 auto; padding: 10px 24px; display: flex; align-items: center; gap: 12px; }
-.filter-label { flex: none; font-size: 10.5px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; color: var(--ink-2); }
 .seg {
   display: inline-flex; padding: 3px; gap: 2px; border-radius: 999px; max-width: 100%; overflow-x: auto; scrollbar-width: none;
   background: var(--s2); border: 1px solid var(--line);
@@ -158,6 +155,12 @@ button { cursor: pointer; }
   color: #fff; background: var(--fill-grad);
   box-shadow: 0 4px 10px -3px var(--glow), inset 0 1px 0 rgba(255,255,255,.35);
 }
+/* bank picker: every bank on show, each with its own drawn mark */
+.seg.banks { overflow: visible; }
+.seg.banks button { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; }
+.seg.banks .bk { width: 16px; height: 16px; flex: none; color: var(--pri); }
+.seg.banks button[aria-pressed="true"] .bk { color: #fff; }
+.seg.banks .bk svg { width: 100%; height: 100%; display: block; }
 .seg.tiny button { padding: 5px 10px; font-size: 12px; font-weight: 700; }
 .seg.tiny button[aria-pressed="true"] { background: var(--pri-cont); color: var(--pri); box-shadow: none; }
 .seg.tiny svg { display: block; }
@@ -270,7 +273,7 @@ select.mini { cursor: pointer; }
 .split .b { background: var(--ok); }
 .split .s { background: #7c5cff; }
 .steps .s::before { background: #7c5cff; }
-.dealbar .coins { flex: none; margin-left: auto; padding-left: 4px; }
+.board-bar .coins { flex: none; }
 .steps { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 8px; font-size: 11.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .steps span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
 .steps span::before { content: ""; width: 7px; height: 7px; border-radius: 2px; background: currentColor; }
@@ -326,6 +329,8 @@ select.mini { cursor: pointer; }
   .body { padding: 10px; }
   .price .now { font-size: 18px; }
   .steps { font-size: 10.5px; gap: 3px 8px; }
+  .board-bar .coins { margin-left: auto; }
+  .seg.banks button { font-size: 12.5px; padding: 5px 10px; gap: 5px; }
   .mini-toggles { margin-left: 0; width: 100%; }
   .mini-toggles select { flex: 1; }
   .bills { grid-auto-columns: 82%; }
