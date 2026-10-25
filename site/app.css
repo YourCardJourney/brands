@@ -196,7 +196,7 @@ button { cursor: pointer; }
 }
 .chip.is-active .count { background: color-mix(in srgb, var(--pri) 16%, transparent); color: var(--pri); }
 .chiprow .seg.tiny { flex: none; }
-.offrow .tally { flex: none; padding: 6px 14px; border-radius: 999px; background: var(--pri-soft); color: var(--ink-2); white-space: nowrap; }
+.offrow .tally { flex: none; padding: 6px 14px; border-radius: 999px; background: var(--pri-cont); border: 1px solid color-mix(in srgb, var(--pri) 22%, transparent); color: var(--ink); font-weight: 600; white-space: nowrap; }
 .offrow .tally b { color: var(--pri); }
 .chip.sm { padding: 5px 12px; font-size: 12.5px; gap: 6px; }
 .chip.sm .count { min-width: 18px; height: 18px; font-size: 10.5px; padding: 0 5px; }
