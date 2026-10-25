@@ -166,10 +166,22 @@ button { cursor: pointer; }
 .seg.tiny svg { display: block; }
 
 /* ---------- filters ---------- */
-.filterbar { max-width: 1240px; margin: 0 auto; padding: 12px 24px 0; }
-.chiprow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-bottom: 10px; }
+.filterbar { max-width: 1240px; margin: 0 auto; padding: 6px 24px 0; }
+/* every row = label column + chips, so all three rows start on one edge */
+.chiprow {
+  display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; align-items: start; column-gap: 14px;
+  padding: 10px 0;
+}
 .chiprow[hidden] { display: none; }
-.chiprow + .chiprow { border-top: 1px solid var(--line); padding-top: 10px; }
+.chiprow + .chiprow { border-top: 1px solid var(--line); }
+.rowbody { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.rowlabel {
+  font-size: 10.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--mute);
+  white-space: nowrap; display: flex; align-items: center; min-height: 30px;
+}
+#typeRow .rowlabel { min-height: 40px; }   /* line up with the first line of chips */
+.sizerow { animation: row-in .32s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes row-in { from { opacity: 0; transform: translateY(-6px); } }
 .chip {
   flex: none; display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 7px; border-radius: 999px;
   background: var(--s1); border: 1px solid var(--line); color: var(--ink); font-size: 13px; font-weight: 600;
@@ -183,10 +195,7 @@ button { cursor: pointer; }
   font-size: 11px; font-weight: 700; background: var(--s2); color: var(--ink-2); font-variant-numeric: tabular-nums;
 }
 .chip.is-active .count { background: color-mix(in srgb, var(--pri) 16%, transparent); color: var(--pri); }
-.chiprow .rowlabel { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); margin-right: 2px; }
 .chiprow .seg.tiny { flex: none; }
-.offrow { justify-content: space-between; }
-.offchips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .offrow .tally { flex: none; padding: 6px 14px; border-radius: 999px; background: var(--pri-soft); color: var(--ink-2); white-space: nowrap; }
 .offrow .tally b { color: var(--pri); }
 .chip.sm { padding: 5px 12px; font-size: 12.5px; gap: 6px; }
@@ -330,10 +339,18 @@ select.mini { cursor: pointer; }
 }
 @media (max-width: 600px) {
   .topbar-inner, .dealbar-inner, .filterbar, main, .hero, .brands, .foot { padding-left: 16px; padding-right: 16px; }
-  .chiprow { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding-left: 16px; padding-right: 16px; }
+  /* phones: label stays pinned on the left, the chips slide under it */
+  .chiprow {
+    display: flex; align-items: center; gap: 10px; overflow-x: auto; scrollbar-width: none;
+    margin: 0 -16px; padding: 9px 16px;
+  }
   .chiprow::-webkit-scrollbar { display: none; }
-  .offrow { justify-content: flex-start; gap: 12px; }
-  .offchips { flex-wrap: nowrap; flex: none; }
+  .rowbody { flex-wrap: nowrap; flex: none; }
+  .rowlabel {
+    position: sticky; left: -16px; z-index: 2; flex: none; align-self: stretch; display: flex; align-items: center;
+    margin-left: -16px; padding: 0 10px 0 16px; width: 70px; box-sizing: border-box;
+    background: linear-gradient(90deg, var(--bg) 82%, transparent);
+  }
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .body { padding: 10px; }
   .price .now { font-size: 18px; }

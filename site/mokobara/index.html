@@ -40,11 +40,18 @@
 </div>
 
 <div class="filterbar">
-  <div class="chiprow" id="typeRow" role="group" aria-label="Type"></div>
-  <div class="chiprow" id="sizeRow" role="group" aria-label="Size" hidden></div>
   <div class="chiprow offrow" id="offRow" role="group" aria-label="Discount">
-    <div class="offchips" id="offChips"></div>
+    <span class="rowlabel">Discount</span>
+    <div class="rowbody" id="offChips"></div>
     <span class="tally" id="tally"></span>
+  </div>
+  <div class="chiprow" id="typeRow" role="group" aria-label="Type">
+    <span class="rowlabel">Type</span>
+    <div class="rowbody" id="typeChips"></div>
+  </div>
+  <div class="chiprow sizerow" id="sizeRow" role="group" aria-label="Size" hidden>
+    <span class="rowlabel">Size</span>
+    <div class="rowbody" id="sizeChips"></div>
   </div>
 </div>
 

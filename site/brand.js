@@ -72,7 +72,7 @@
   function renderChips() {
     var base = pool(), byType = {};
     base.forEach(function (p) { byType[p.type] = (byType[p.type] || 0) + 1; });
-    $("typeRow").innerHTML = chip("All", !state.types.length, BR.mark(SLUG), base.length, "", "data-type", "") +
+    $("typeChips").innerHTML = chip("All", !state.types.length, BR.mark(SLUG), base.length, "", "data-type", "") +
       TYPE_ORDER.filter(function (t) { return byType[t]; }).map(function (t) {
         return chip(t, state.types.indexOf(t) >= 0, BR.TYPES[t], byType[t], "pick", "data-type", t);
       }).join("");
@@ -84,8 +84,8 @@
     var sizes = Object.keys(bySize).sort(function (a, b) { return parseFloat(a) - parseFloat(b); });
     state.sizes = state.sizes.filter(function (s) { return bySize[s]; });
     $("sizeRow").hidden = sizes.length < 2;
-    $("sizeRow").innerHTML = sizes.length < 2 ? "" :
-      chip("Any size", !state.sizes.length, null, null, "sm", "data-size", "") +
+    $("sizeChips").innerHTML = sizes.length < 2 ? "" :
+      chip("Any", !state.sizes.length, null, null, "sm", "data-size", "") +
       sizes.map(function (s) { return chip(s, state.sizes.indexOf(s) >= 0, null, bySize[s], "sm", "data-size", s); }).join("");
   }
 
@@ -97,7 +97,6 @@
         (!state.sizes.length || state.sizes.indexOf(p.size) >= 0);
     });
     $("offChips").innerHTML =
-      '<span class="rowlabel">Discount</span>' +
       '<div class="seg tiny" id="offSeg" role="group" aria-label="Discount mode">' +
         '<button type="button" data-mode="ge" title="This much off or more" aria-pressed="' + (state.offMode === "ge") + '">≥</button>' +
         '<button type="button" data-mode="eq" title="In this band, e.g. = 50% is 50-59% off" aria-pressed="' + (state.offMode === "eq") + '">=</button></div>' +
