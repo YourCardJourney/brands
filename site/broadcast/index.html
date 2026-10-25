@@ -42,6 +42,12 @@
     .act .ok { display: none; } .act.done .ok { display: block; } .act.done .ic { display: none; }
     .side .meta { display: flex; justify-content: space-between; color: var(--ink-2); font-size: 12px; margin: 0 2px 8px; }
     .side .meta b { color: var(--ink); }
+    .tabs { display: flex; margin-bottom: 10px; }
+    .tabs button { flex: 1; }
+    .pane[hidden] { display: none; }
+    .shot { display: block; width: 100%; border-radius: 14px; border: 1px solid var(--line); background: var(--s2); min-height: 240px; max-height: 560px; object-fit: contain; object-position: top; }
+    .shot.busy { opacity: .55; transition: opacity .2s; }
+    .act.ghost { background: var(--s2); color: var(--ink); border: 1px solid var(--line); }
     @media (max-width: 900px) { .bc { grid-template-columns: 1fr; } .side { position: static; } .side textarea { min-height: 300px; } }
     @media (max-width: 600px) { .bc { padding: 10px 16px 32px; } .ctl { grid-template-columns: 64px minmax(0, 1fr); } .pick li { grid-template-columns: 20px 44px minmax(0, 1fr) auto; gap: 10px; } .pick img { width: 44px; height: 44px; } }
   </style>
@@ -71,6 +77,26 @@
   </section>
 
   <aside class="side">
+    <div class="seg tabs" id="tabs" role="tablist">
+      <button type="button" data-tab="text" aria-pressed="true">Text</button>
+      <button type="button" data-tab="image" aria-pressed="false">Image</button>
+    </div>
+    <div class="pane" id="paneImage" hidden>
+      <div class="meta"><span><b id="nImg">0</b> deals in the picture</span><span>1080 px wide</span></div>
+      <img class="shot" id="shot" alt="Broadcast picture preview">
+      <div class="row">
+        <button class="act copy" id="share" type="button">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>
+          <svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+          <span id="shareLbl">Share</span>
+        </button>
+        <a class="act ghost" id="dl" download="mokobara-deals.png" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
+          Download
+        </a>
+      </div>
+    </div>
+    <div class="pane" id="paneText">
     <div class="meta"><span><b id="nSel">0</b> deals in the message</span><span id="nChars"></span></div>
     <textarea id="msg" spellcheck="false" aria-label="WhatsApp message"></textarea>
     <div class="row">
@@ -83,6 +109,7 @@
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.3-.4.8-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 11.9 11.9 0 0 0 4.6 4c1.7.7 2.4.8 3.2.7a2.8 2.8 0 0 0 1.8-1.3 2.3 2.3 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg>
         WhatsApp
       </a>
+    </div>
     </div>
   </aside>
 </div>
@@ -163,6 +190,100 @@
     $("nSel").textContent = pick.length;
     $("nChars").textContent = msg.length + " chars";
     $("wa").href = "https://wa.me/?text=" + encodeURIComponent(msg);
+    picked = pick;
+    if (tab === "image") schedule();
+  }
+
+  // ---- the picture: same deals, same numbers, drawn on a canvas ----
+  // Flipkart's image CDN sends Access-Control-Allow-Origin: *, so the photos
+  // can be drawn without tainting the canvas.
+  var MAX_IMG = 10, tab = "text", picked = [], blob = null, timer = 0, token = 0, imgs = {};
+  function load(src) {
+    if (!imgs[src]) imgs[src] = new Promise(function (ok) {
+      var im = new Image(); im.crossOrigin = "anonymous";
+      im.onload = function () { ok(im); }; im.onerror = function () { ok(null); };
+      im.src = src;
+    });
+    return imgs[src];
+  }
+  function rr(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+  function fit(c, text, max) {
+    if (c.measureText(text).width <= max) return text;
+    while (text.length > 1 && c.measureText(text + "…").width > max) text = text.slice(0, -1);
+    return text.trim() + "…";
+  }
+  function wrap(c, text, max, lines) {
+    var out = [], cur = "";
+    text.split(" ").forEach(function (w) { var t = cur ? cur + " " + w : w; if (c.measureText(t).width > max && cur) { out.push(cur); cur = w; } else cur = t; });
+    if (cur) out.push(cur);
+    if (out.length > lines) { out = out.slice(0, lines); out[lines - 1] = fit(c, out[lines - 1] + " …", max); }
+    return out;
+  }
+  function schedule() { clearTimeout(timer); $("shot").classList.add("busy"); timer = setTimeout(draw, 220); }
+
+  function draw() {
+    var me = ++token, list = picked.slice(0, MAX_IMG);
+    $("nImg").textContent = list.length;
+    var W = 1080, P = 48, G = 26, CW = (W - P * 2 - G) / 2, PH = 380, TH = 214, CH = PH + TH, HEAD = 236, FOOT = 132;
+    var rows = Math.max(1, Math.ceil(list.length / 2)), H = HEAD + rows * CH + (rows - 1) * G + 44 * 2 + FOOT;
+    Promise.all([document.fonts ? document.fonts.ready : 0, load("/yourcardjourney.png")].concat(list.map(function (p) { return p.img ? load(p.img) : null; })))
+      .then(function (got) {
+        if (me !== token) return;
+        var logo = got[1], photos = got.slice(2);
+        var cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+        var c = cv.getContext("2d"), F = "Inter, system-ui, sans-serif";
+        c.fillStyle = "#fff4f7"; c.fillRect(0, 0, W, H);
+        // header band
+        var g = c.createLinearGradient(0, 0, W, HEAD); g.addColorStop(0, "#f13ab1"); g.addColorStop(.5, "#ff3f6c"); g.addColorStop(1, "#fd913c");
+        c.fillStyle = g; rr(c, 0, -40, W, HEAD + 40, 48); c.fill();
+        c.fillStyle = "rgba(255,255,255,.82)"; c.font = "800 26px " + F; c.fillText("FLIPKART  ·  PRICES WORKED OUT", P, 74);
+        c.fillStyle = "#fff"; c.font = "800 74px " + F; c.fillText("Mokobara deals", P, 150);
+        c.font = "600 27px " + F; c.fillStyle = "rgba(255,255,255,.92)";
+        c.fillText(fit(c, (state.card ? "With " + state.card + " card" : "No card offer") + "  ·  coupon + card offer included  ·  " +
+          new Date(updated).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }), W - P * 2), P, 198);
+        // one card per deal, numbered like the message
+        list.forEach(function (p, i) {
+          var x = P + (i % 2) * (CW + G), y = HEAD + 44 + Math.floor(i / 2) * (CH + G);
+          c.save(); c.shadowColor = "rgba(201,24,74,.12)"; c.shadowBlur = 30; c.shadowOffsetY = 8;
+          c.fillStyle = "#fff"; rr(c, x, y, CW, CH, 30); c.fill(); c.restore();
+          var im = photos[i];
+          if (im) {
+            c.save(); rr(c, x, y, CW, PH, 30); c.clip();
+            var k = Math.min((CW - 40) / im.width, (PH - 30) / im.height), w = im.width * k, h = im.height * k;
+            c.drawImage(im, x + (CW - w) / 2, y + (PH - h) / 2 + 6, w, h); c.restore();
+          }
+          c.fillStyle = "#1f1235"; rr(c, x + 18, y + 18, 54, 54, 27); c.fill();
+          c.fillStyle = "#fff"; c.font = "800 26px " + F; c.textAlign = "center"; c.fillText(String(i + 1), x + 45, y + 54); c.textAlign = "left";
+          var off = pct(p) + "% OFF"; c.font = "800 26px " + F; var ow = c.measureText(off).width + 32;
+          c.fillStyle = "#ff3f6c"; rr(c, x + CW - ow - 18, y + 20, ow, 50, 25); c.fill();
+          c.fillStyle = "#fff"; c.fillText(off, x + CW - ow - 2, y + 54);
+          var ty = y + PH + 14;
+          c.fillStyle = "#efe7ee"; c.fillRect(x + 24, y + PH, CW - 48, 2);
+          c.fillStyle = "#1a1320"; c.font = "700 27px " + F;
+          wrap(c, p.title + (p.size ? " " + p.size : ""), CW - 48, 2).forEach(function (l, n) { c.fillText(l, x + 24, ty + 34 + n * 34); });
+          c.fillStyle = "#7a6f80"; c.font = "500 21px " + F; c.fillText(fit(c, p.colour || p.type, CW - 48), x + 24, ty + 102);
+          c.fillStyle = "#c9184a"; c.font = "800 50px " + F; var pr = inr(pay(p)); c.fillText(pr, x + 24, ty + 162);
+          var pw = c.measureText(pr).width, mrp = inr(p.mrp); c.fillStyle = "#9a8fa0"; c.font = "500 24px " + F;
+          c.fillText(mrp, x + 38 + pw, ty + 160); c.fillRect(x + 38 + pw, ty + 152, c.measureText(mrp).width, 2);
+          var bits = [], b = state.card ? (p.banks[state.card] || 0) : 0;
+          if (p.coupon) bits.push("Coupon " + inr(p.coupon));
+          if (b) bits.push(state.card + " " + inr(b));
+          if (bits.length) { c.fillStyle = "#5b3fd6"; c.font = "700 20px " + F; c.fillText(fit(c, bits.join("  +  "), CW - 48), x + 24, ty + 194); }
+        });
+        var fy = H - FOOT;
+        c.fillStyle = "#1f1235"; c.fillRect(0, fy, W, FOOT);
+        var tx = P + (logo ? 96 : 0);
+        if (logo) c.drawImage(logo, P, fy + 30, 72, 72);
+        c.fillStyle = "#fff"; c.font = "800 30px " + F; c.fillText("brands.yourcardjourney.store/mokobara", tx, fy + 62);
+        c.fillStyle = "rgba(255,255,255,.7)"; c.font = "600 22px " + F; c.fillText("Shared by @YourCardJourney  ·  buy links in the message", tx, fy + 96);
+        cv.toBlob(function (bl) {
+          if (me !== token || !bl) return;
+          blob = bl;
+          var u = URL.createObjectURL(bl), old = $("shot").src;
+          $("shot").src = u; $("dl").href = u; $("shot").classList.remove("busy");
+          if (old && old.indexOf("blob:") === 0) setTimeout(function () { URL.revokeObjectURL(old); }, 4000);
+        }, "image/png");
+      });
   }
 
   document.addEventListener("click", function (e) {
@@ -179,6 +300,27 @@
   $("msg").addEventListener("input", function () {
     $("nChars").textContent = this.value.length + " chars";
     $("wa").href = "https://wa.me/?text=" + encodeURIComponent(this.value);
+  });
+  $("tabs").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-tab]"); if (!b) return;
+    tab = b.dataset.tab;
+    this.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+    $("paneText").hidden = tab !== "text"; $("paneImage").hidden = tab !== "image";
+    if (tab === "image") schedule();
+  });
+  // Phones: the share sheet gets the picture with the message as its caption.
+  // Laptops: copy the picture, then paste it into WhatsApp Web.
+  var canShare = false;
+  try { canShare = !!(navigator.canShare && navigator.canShare({ files: [new File([""], "x.png", { type: "image/png" })] })); } catch (e) {}
+  $("shareLbl").textContent = canShare ? "Share" : "Copy image";
+  $("share").addEventListener("click", function () {
+    if (!blob) return;
+    var btn = this, done = function () { btn.classList.add("done"); setTimeout(function () { btn.classList.remove("done"); }, 1400); };
+    if (canShare) {
+      navigator.share({ files: [new File([blob], "mokobara-deals.png", { type: "image/png" })], text: $("msg").value }).then(done, function () {});
+    } else if (navigator.clipboard && window.ClipboardItem) {
+      navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]).then(done, function () { $("dl").click(); });
+    } else $("dl").click();
   });
   $("copy").addEventListener("click", function () {
     var btn = this, done = function () { btn.classList.add("done"); setTimeout(function () { btn.classList.remove("done"); }, 1400); };
