@@ -39,6 +39,12 @@ BANKS = {"HDFC": "HDFC", "ICICI": "ICICI", "SBI": "SBI", "Axis": "Axis",
          "OneCard": "OneCard", "Federal": "Federal", "IndusInd": "IndusInd", "HSBC": "HSBC"}
 
 
+# A product only goes on the board if Flipkart delivers it to all of these.
+# Fulfilled stock sits in one region's warehouse, so "in stock" alone can mean
+# "ships to Kolkata only" (the Hovercraft 30" Ocean, 27-Oct).
+PINS = {"Hyderabad": "500081", "Bangalore": "560001", "Delhi": "110001"}
+SVC = "https://2.rome.api.flipkart.com/api/3/product/serviceability"
+
 # Offer kinds the parser understands. Anything else on a page (a SuperCoin
 # layer, say) is printed at the end of the run so it can be added.
 KNOWN_OFFERS = {"PBO", "EXCHANGE", "USER_COUPON_SELECTION"}
@@ -116,10 +122,41 @@ def parse(html):
     if soldout:
         stock = False
 
+    ids = find(st, lambda d: "pid" in d and "lid" in d) or {}
+
     m = re.search(r'og:image" content="([^"]+)', html)
     img = m.group(1).replace("/1500/1500/", "/416/416/") if m else ""
-    return {"mrp": mrp, "listed": listed, "coupon": coupon, "banks": banks,
+    return {"pid": ids.get("pid"), "mrp": mrp, "listed": listed, "coupon": coupon, "banks": banks,
             "low": low, "stock": stock, "img": img, "full": bool(nep) or not stock, "soldout": soldout}
+
+
+def serviceable(pids):
+    """{pid: True/False} - delivers to every PINS pincode. A pid whose check
+    failed is left out, and the caller keeps it (never blank the board)."""
+    def one(args):
+        batch, pin = args
+        body = json.dumps({"requestContext": {"products": [{"productId": x} for x in batch]},
+                           "locationContext": {"pincode": pin}})
+        for attempt in range(3):
+            p = subprocess.run(["curl", "-s", "--compressed", "-m", "40", "-A", UA,
+                                "-H", "X-User-Agent: %s FKUA/website/42/website/Desktop" % UA,
+                                "-H", "Content-Type: application/json", "-X", "POST", SVC, "-d", body],
+                               capture_output=True)
+            try:
+                r = json.loads(p.stdout)["RESPONSE"]
+                return {x: r[x]["listingSummary"]["serviceable"] for x in batch if x in r}
+            except Exception:
+                time.sleep(3 + attempt * 4)
+        return {}
+
+    batches = [pids[i:i + 20] for i in range(0, len(pids), 20)]
+    with ThreadPoolExecutor(8) as ex:
+        res = list(ex.map(one, [(b, pin) for b in batches for pin in PINS.values()]))
+    seen = {}
+    for d in res:
+        for x, v in d.items():
+            seen.setdefault(x, []).append(v)
+    return {x: all(v) for x, v in seen.items() if len(v) == len(PINS)}
 
 
 # ---- name parsing (the catalogue names are Flipkart titles) ----
@@ -218,7 +255,8 @@ def refresh(slug):
             if r.pop("soldout"):
                 r = reads[i] = {"soldout": True}
 
-    items, fresh = [], 0
+    ship = serviceable([r["pid"] for r in reads if r and r.get("stock") and r.get("pid")])
+    items, fresh, nodel = [], 0, 0
     now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     for p, r in zip(cat["products"], reads):
         prev = old.get(p["id"])
@@ -230,12 +268,16 @@ def refresh(slug):
             r = {k: prev[k] for k in ("mrp", "listed", "coupon", "banks", "low", "img")}
             r.update(stock=False, seen=now)
         elif r and r["listed"]:
+            if r["stock"] and ship.get(r["pid"]) is False:
+                nodel += 1  # in stock, but not deliverable to the PINS cities
+                continue
             fresh += 1
             r["seen"] = now
         elif prev:
             r = {k: prev[k] for k in ("mrp", "listed", "coupon", "banks", "low", "stock", "img", "seen")}
         else:
             continue
+        r.pop("pid", None)
         k = kind(p["name"])
         items.append(dict(id=p["id"], name=p["name"], title=title(p["name"], cat["name"]),
                           colour=colour(p["name"]), type=k, size=size(p["name"], k),
@@ -245,8 +287,8 @@ def refresh(slug):
     with io.open(out_p, "w", encoding="utf-8", newline="") as fh:
         json.dump({"brand": cat["name"], "store": cat.get("store", "Flipkart"),
                    "updated": now, "items": items}, fh, ensure_ascii=False, separators=(",", ":"))
-    print("%s: %d/%d fresh, %d kept from last read, %.0fs" % (
-        slug, fresh, len(cat["products"]), len(items) - fresh, time.time() - started))
+    print("%s: %d/%d fresh, %d kept from last read, %d dropped (no delivery to %s), %.0fs" % (
+        slug, fresh, len(cat["products"]), len(items) - fresh, nodel, "/".join(PINS), time.time() - started))
     return fresh, items, now
 
 
