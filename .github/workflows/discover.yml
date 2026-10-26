@@ -1,0 +1,41 @@
+# Brands - once a week, look for brand listings on Flipkart the catalogue
+# doesn't have yet (tools/discover.py) and add them on plain Flipkart links.
+# A "tick" then makes Refresh read their prices and publish them. Affiliate
+# links are minted by hand later: python tools/discover.py --plain lists them.
+
+name: Discover
+
+on:
+  schedule:
+    - cron: "30 2 * * 0"   # Sunday 08:00 IST
+  workflow_dispatch:
+
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Search Flipkart
+        run: python tools/discover.py | tee found.txt
+      - name: Commit new products
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "brands-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add catalog
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "New listings: $(grep -o '[0-9]* new' found.txt | paste -sd, -)" -m "$(grep '^  +' found.txt)"
+          git push
+          # repository_dispatch is one of the events GITHUB_TOKEN may trigger
+          gh api repos/${{ github.repository }}/dispatches -f event_type=tick
