@@ -128,6 +128,8 @@ def kind(name):
     n = name.lower()
     if "wallet" in n or "card holder" in n:
         return "Wallets"
+    if re.search(r"packing cube|toiletry|wonder kit|laptop sleeve|lunch bag", n):
+        return "Travel kits"
     if re.search(r"\bset\b", n):
         return "Sets"
     if "cabin suitcase" in n:
@@ -146,15 +148,16 @@ def size(name, k):
         m = re.search(r"set of (\d)", name, re.I)
         return (m.group(1) if m else ("3" if "Large" in name else "2")) + "-piece"
     m = re.search(r"([\d.]+) ?inch\b", name) if k in ("Cabin", "Check-in") else \
-        re.search(r"([\d.]+) ?L\b", name) if k == "Backpacks" else None
+        re.search(r"([\d.]+) ?L\b", name) if k == "Backpacks" else \
+        re.search(r"(Set of \d)", name) if k == "Travel kits" else None
     if not m:
         return ""
     v = m.group(1)
-    return v + ('"' if k in ("Cabin", "Check-in") else " L")
+    return v + ('"' if k in ("Cabin", "Check-in") else " L" if k == "Backpacks" else "")
 
 
 def colour(name):
-    m = re.search(r".*\b(?:inch|cm|Backpack|Tote|Bag|Wallet|Holder|Handbag)\s+([^|]+)$", name)
+    m = re.search(r".*\b(?:inch|cm|Backpack|Tote|Bag|Wallet|Holder|Handbag|Kit|\))\s+([^|]+)$", name)
     return m.group(1).strip() if m else ""
 
 

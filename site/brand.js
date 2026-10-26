@@ -6,7 +6,7 @@
   var inr = BR.inr, esc = BR.esc;
   var SLUG = document.body.dataset.brand;
   var OFF_STEPS = [40, 50, 60, 70];
-  var TYPE_ORDER = ["Cabin", "Check-in", "Sets", "Backpacks", "Totes & bags", "Messengers", "Wallets"];
+  var TYPE_ORDER = ["Cabin", "Check-in", "Sets", "Backpacks", "Totes & bags", "Messengers", "Wallets", "Travel kits"];
 
   var items = [], cards = [];
   var state = {

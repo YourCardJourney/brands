@@ -13,7 +13,8 @@ var BR = (function () {
     "Backpacks": S + '<path d="M7 9a5 5 0 0 1 10 0v10a1.5 1.5 0 0 1-1.5 1.5h-7A1.5 1.5 0 0 1 7 19z"/><path d="M10 4.5V3.5h4v1M9.5 14h5v3h-5z"/></svg>',
     "Totes & bags": S + '<path d="M5 9h14l-1.3 11H6.3z"/><path d="M9 11V7a3 3 0 0 1 6 0v4"/></svg>',
     "Messengers": S + '<rect x="4" y="9" width="16" height="11" rx="2"/><path d="M4 12h16M8 9 15 3M12 12v2"/></svg>',
-    "Wallets": S + '<rect x="3.5" y="6" width="17" height="13" rx="2.4"/><path d="M14.5 11h6v4h-6a2 2 0 0 1 0-4z"/></svg>'
+    "Wallets": S + '<rect x="3.5" y="6" width="17" height="13" rx="2.4"/><path d="M14.5 11h6v4h-6a2 2 0 0 1 0-4z"/></svg>',
+    "Travel kits": S + '<rect x="3.5" y="8" width="17" height="11" rx="2.2"/><path d="M3.5 13.5h17M12 8v11M9 8V6h6v2"/></svg>'
   };
   // Bank marks, same hand: a shopping bag for the Flipkart card, a pillared
   // bank for HDFC. Drawn, never the bank's own logo.
