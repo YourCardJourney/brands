@@ -39,10 +39,13 @@ BANKS = {"HDFC": "HDFC", "ICICI": "ICICI", "SBI": "SBI", "Axis": "Axis",
          "OneCard": "OneCard", "Federal": "Federal", "IndusInd": "IndusInd", "HSBC": "HSBC"}
 
 
-# A product only goes on the board if Flipkart delivers it to all of these.
+# A product only goes on the board if Flipkart delivers it to at least
+# MIN_CITIES of these metros.
 # Fulfilled stock sits in one region's warehouse, so "in stock" alone can mean
 # "ships to Kolkata only" (the Hovercraft 30" Ocean, 27-Oct).
-PINS = {"Hyderabad": "500081", "Bangalore": "560001", "Delhi": "110001"}
+PINS = {"Hyderabad": "500081", "Bangalore": "560001", "Delhi": "110001",
+        "Mumbai": "400001", "Chennai": "600001"}
+MIN_CITIES = 2
 SVC = "https://2.rome.api.flipkart.com/api/3/product/serviceability"
 
 # Offer kinds the parser understands. Anything else on a page (a SuperCoin
@@ -131,7 +134,7 @@ def parse(html):
 
 
 def serviceable(pids):
-    """{pid: True/False} - delivers to every PINS pincode. A pid whose check
+    """{pid: True/False} - delivers to MIN_CITIES of the PINS. A pid whose check
     failed is left out, and the caller keeps it (never blank the board)."""
     def one(args):
         batch, pin = args
@@ -156,7 +159,7 @@ def serviceable(pids):
     for d in res:
         for x, v in d.items():
             seen.setdefault(x, []).append(v)
-    return {x: all(v) for x, v in seen.items() if len(v) == len(PINS)}
+    return {x: sum(v) >= MIN_CITIES for x, v in seen.items() if len(v) == len(PINS)}
 
 
 # ---- name parsing (the catalogue names are Flipkart titles) ----
@@ -269,7 +272,7 @@ def refresh(slug):
             r.update(stock=False, seen=now)
         elif r and r["listed"]:
             if r["stock"] and ship.get(r["pid"]) is False:
-                nodel += 1  # in stock, but not deliverable to the PINS cities
+                nodel += 1  # in stock, but ships to fewer than MIN_CITIES metros
                 continue
             fresh += 1
             r["seen"] = now
@@ -287,8 +290,9 @@ def refresh(slug):
     with io.open(out_p, "w", encoding="utf-8", newline="") as fh:
         json.dump({"brand": cat["name"], "store": cat.get("store", "Flipkart"),
                    "updated": now, "items": items}, fh, ensure_ascii=False, separators=(",", ":"))
-    print("%s: %d/%d fresh, %d kept from last read, %d dropped (no delivery to %s), %.0fs" % (
-        slug, fresh, len(cat["products"]), len(items) - fresh, nodel, "/".join(PINS), time.time() - started))
+    print("%s: %d/%d fresh, %d kept from last read, %d dropped (deliver to < %d of %s), %.0fs" % (
+        slug, fresh, len(cat["products"]), len(items) - fresh, nodel, MIN_CITIES, "/".join(PINS),
+        time.time() - started))
     return fresh, items, now
 
 
