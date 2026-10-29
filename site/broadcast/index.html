@@ -205,9 +205,19 @@
   // phones; 16:9 is X's uncropped wide card. Each holds the top 8 deals:
   // 4:5 as 2 x 4 side cards (photo left), 16:9 as 4 x 2 stacked cards.
   var SIZES = {
-    portrait: { W: 1080, H: 1350, cols: 2, n: 8, HEAD: 176, FOOT: 96, side: true },
-    wide: { W: 1600, H: 900, cols: 4, n: 8, HEAD: 150, FOOT: 88, side: false }
+    portrait: { W: 1080, H: 1350, n: 8, HEAD: 176, FOOT: 96, cols: [1, 1, 1, 2, 2, 2, 2, 2] },
+    wide: { W: 1600, H: 900, n: 8, HEAD: 150, FOOT: 88, cols: [1, 2, 3, 4, 3, 3, 4, 4] }
   };
+  // Fewer deals = fewer, bigger cards that fill the picture. A card wider than
+  // ~1.6x its height puts the photo on the left, otherwise on top; text scales
+  // with the card (s = 1 at the old 8-deal sizes).
+  function grid(L, n, CWfull, CHfull, G) {
+    var cols = L.cols[Math.max(0, n - 1)], rows = Math.ceil(n / cols);
+    var CW = (CWfull - G * (cols - 1)) / cols, CH = (CHfull - G * (rows - 1)) / rows;
+    var side = CW / CH >= 1.6;
+    var s = side ? Math.min(CW / 490, CH / 242) : Math.min(CW / 370, CH / 297);
+    return { cols: cols, CW: CW, CH: CH, side: side, s: Math.max(1, Math.min(2.4, s)) };
+  }
   var size = "portrait", tab = "text", picked = [], blob = null, timer = 0, token = 0, imgs = {};
   function load(src) {
     if (!imgs[src]) imgs[src] = new Promise(function (ok) {
@@ -236,8 +246,8 @@
     var L = SIZES[size], me = ++token, list = picked.slice(0, L.n);
     $("nImg").textContent = list.length;
     var W = L.W, H = L.H, HEAD = L.HEAD, FOOT = L.FOOT, P = 40, G = 20, PADY = 24;
-    var rowsMax = Math.ceil(L.n / L.cols), CW = (W - P * 2 - G * (L.cols - 1)) / L.cols;
-    var CH = (H - HEAD - FOOT - PADY * 2 - G * (rowsMax - 1)) / rowsMax;
+    var GR = grid(L, list.length, W - P * 2, H - HEAD - FOOT - PADY * 2, G);
+    var CW = GR.CW, CH = GR.CH, side = GR.side, s = GR.s;
     Promise.all([document.fonts ? document.fonts.ready : 0, load("/yourcardjourney.png")].concat(list.map(function (p) { return p.img ? load(p.img) : null; })))
       .then(function (got) {
         if (me !== token) return;
@@ -255,40 +265,41 @@
           new Date(updated).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }), W - P * 2), P, HEAD * .84);
         // one card per deal, numbered like the message; a short last row is centred
         list.forEach(function (p, i) {
-          var row = Math.floor(i / L.cols), inRow = Math.min(L.cols, list.length - row * L.cols);
-          var x = (W - (inRow * CW + (inRow - 1) * G)) / 2 + (i % L.cols) * (CW + G), y = HEAD + PADY + row * (CH + G);
+          var row = Math.floor(i / GR.cols), inRow = Math.min(GR.cols, list.length - row * GR.cols);
+          var x = (W - (inRow * CW + (inRow - 1) * G)) / 2 + (i % GR.cols) * (CW + G), y = HEAD + PADY + row * (CH + G);
+          var px = function (n) { return Math.round(n * s) + "px "; };
           c.save(); c.shadowColor = "rgba(201,24,74,.12)"; c.shadowBlur = 24; c.shadowOffsetY = 6;
-          c.fillStyle = "#fff"; rr(c, x, y, CW, CH, 24); c.fill(); c.restore();
+          c.fillStyle = "#fff"; rr(c, x, y, CW, CH, 24 * s); c.fill(); c.restore();
           // photo box: square on the left (side) or a band across the top (stacked)
-          var bx = x + 10, by = y + 10, bw = L.side ? CH - 20 : CW - 20, bh = L.side ? CH - 20 : CH - 162;
-          c.fillStyle = "#faf6f8"; rr(c, bx, by, bw, bh, 18); c.fill();
+          var bx = x + 10 * s, by = y + 10 * s, bw = side ? CH - 20 * s : CW - 20 * s, bh = side ? CH - 20 * s : CH - 162 * s;
+          c.fillStyle = "#faf6f8"; rr(c, bx, by, bw, bh, 18 * s); c.fill();
           var im = photos[i];
           if (im) {
-            var k = Math.min((bw - 16) / im.width, (bh - 16) / im.height), w = im.width * k, h = im.height * k;
+            var k = Math.min((bw - 16 * s) / im.width, (bh - 16 * s) / im.height), w = im.width * k, h = im.height * k;
             c.drawImage(im, bx + (bw - w) / 2, by + (bh - h) / 2, w, h);
           }
-          c.fillStyle = "#1f1235"; rr(c, bx + 8, by + 8, 38, 38, 19); c.fill();
-          c.fillStyle = "#fff"; c.font = "800 20px " + F; c.textAlign = "center"; c.fillText(String(i + 1), bx + 27, by + 34); c.textAlign = "left";
-          var off = pct(p) + "% OFF"; c.font = "800 19px " + F; var ow = c.measureText(off).width + 22;
-          c.fillStyle = "#ff3f6c"; rr(c, bx + bw - ow - 8, by + 8, ow, 36, 18); c.fill();
-          c.fillStyle = "#fff"; c.fillText(off, bx + bw - ow + 3, by + 33);
+          c.fillStyle = "#1f1235"; rr(c, bx + 8 * s, by + 8 * s, 38 * s, 38 * s, 19 * s); c.fill();
+          c.fillStyle = "#fff"; c.font = "800 " + px(20) + F; c.textAlign = "center"; c.fillText(String(i + 1), bx + 27 * s, by + 34 * s); c.textAlign = "left";
+          var off = pct(p) + "% OFF"; c.font = "800 " + px(19) + F; var ow = c.measureText(off).width + 22 * s;
+          c.fillStyle = "#ff3f6c"; rr(c, bx + bw - ow - 8 * s, by + 8 * s, ow, 36 * s, 18 * s); c.fill();
+          c.fillStyle = "#fff"; c.fillText(off, bx + bw - ow + 3 * s, by + 33 * s);
           // text: beside the photo (side) or under it (stacked)
-          var tx = L.side ? bx + bw + 18 : x + 20, tw = L.side ? x + CW - tx - 16 : CW - 40, ty = L.side ? y + 14 : by + bh + 6;
+          var tx = side ? bx + bw + 18 * s : x + 20 * s, tw = side ? x + CW - tx - 16 * s : CW - 40 * s, ty = side ? y + 14 * s : by + bh + 6 * s;
           var name = p.title + (p.size ? " " + p.size : "");
-          c.fillStyle = "#1a1320"; c.font = "700 " + (L.side ? 22 : 21) + "px " + F;
-          var lines = L.side ? wrap(c, name, tw, 2) : [fit(c, name, tw)];
-          lines.forEach(function (l, n) { c.fillText(l, tx, ty + 26 + n * 27); });
-          var cy = ty + 26 + lines.length * 27;
-          c.fillStyle = "#7a6f80"; c.font = "500 17px " + F; c.fillText(fit(c, p.colour || p.type, tw), tx, cy);
-          c.fillStyle = "#c9184a"; c.font = "800 " + (L.side ? 40 : 36) + "px " + F; var pr = inr(pay(p)); c.fillText(pr, tx, cy + (L.side ? 50 : 44));
-          var pw = c.measureText(pr).width, mrp = inr(p.mrp); c.fillStyle = "#9a8fa0"; c.font = "500 18px " + F;
-          var mx = tx + pw + 10, my = cy + (L.side ? 48 : 42);
-          if (mx + c.measureText(mrp).width > tx + tw) { mx = tx; my = cy + (L.side ? 76 : 66); }
-          c.fillText(mrp, mx, my); c.fillRect(mx, my - 6, c.measureText(mrp).width, 1.5);
+          c.fillStyle = "#1a1320"; c.font = "700 " + px(side ? 22 : 21) + F;
+          var lines = side ? wrap(c, name, tw, 2) : [fit(c, name, tw)];
+          lines.forEach(function (l, n) { c.fillText(l, tx, ty + (26 + n * 27) * s); });
+          var cy = ty + (26 + lines.length * 27) * s;
+          c.fillStyle = "#7a6f80"; c.font = "500 " + px(17) + F; c.fillText(fit(c, p.colour || p.type, tw), tx, cy);
+          c.fillStyle = "#c9184a"; c.font = "800 " + px(side ? 40 : 36) + F; var pr = inr(pay(p)); c.fillText(pr, tx, cy + (side ? 50 : 44) * s);
+          var pw = c.measureText(pr).width, mrp = inr(p.mrp); c.fillStyle = "#9a8fa0"; c.font = "500 " + px(18) + F;
+          var mx = tx + pw + 10 * s, my = cy + (side ? 48 : 42) * s;
+          if (mx + c.measureText(mrp).width > tx + tw) { mx = tx; my = cy + (side ? 76 : 66) * s; }
+          c.fillText(mrp, mx, my); c.fillRect(mx, my - 6 * s, c.measureText(mrp).width, 1.5 * s);
           var bits = [], b = state.card ? (p.banks[state.card] || 0) : 0;
           if (p.coupon) bits.push("Coupon " + inr(p.coupon));
           if (b) bits.push(state.card + " " + inr(b));
-          if (bits.length) { c.fillStyle = "#5b3fd6"; c.font = "700 15px " + F; c.fillText(fit(c, bits.join(" + "), tw), tx, y + CH - (L.side ? 18 : 16)); }
+          if (bits.length) { c.fillStyle = "#5b3fd6"; c.font = "700 " + px(15) + F; c.fillText(fit(c, bits.join(" + "), tw), tx, y + CH - (side ? 18 : 16) * s); }
         });
         var fy = H - FOOT, ls = FOOT - 44, tx = P + (logo ? ls + 22 : 0);
         c.fillStyle = "#1f1235"; c.fillRect(0, fy, W, FOOT);
