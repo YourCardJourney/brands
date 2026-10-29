@@ -124,7 +124,7 @@
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
   var inr = BR.inr, esc = BR.esc;
-  var state = { card: "HDFC", min: 50, type: "", top: 10, one: true, off: {} };
+  var state = { card: "", min: 50, type: "", top: 10, one: true, off: {} };
   var items = [], updated = "";
 
   function pay(p) { return p.listed - (p.coupon || 0) - (state.card ? (p.banks[state.card] || 0) : 0); }
@@ -159,8 +159,9 @@
   function render() {
     var cards = {};
     items.forEach(function (p) { Object.keys(p.banks).forEach(function (c) { cards[c] = (cards[c] || 0) + 1; }); });
-    $("card").innerHTML = ["", "HDFC"].concat(Object.keys(cards).filter(function (c) { return c !== "HDFC"; }).sort(function (a, b) { return cards[b] - cards[a]; }))
-      .map(function (c) { return '<button type="button" data-card="' + esc(c) + '" aria-pressed="' + (state.card === c) + '">' + (c || "No card") + "</button>"; }).join("");
+    var best = BR.bestCard(items);
+    $("card").innerHTML = ["", best].concat(Object.keys(cards).filter(function (c) { return c !== best; }).sort(function (a, b) { return cards[b] - cards[a]; }))
+      .map(function (c) { return '<button type="button" data-card="' + esc(c) + '" aria-pressed="' + (state.card === c) + '"' + (c && c === best ? ' class="best" title="Biggest discount today"' : "") + ">" + (c || "No card") + "</button>"; }).join("");
 
     var base = items.filter(function (p) { return p.stock && (!state.type || p.type === state.type); });
     $("min").innerHTML = [0, 40, 50, 60, 70].map(function (n) {
@@ -367,7 +368,7 @@
 
   $("mark").innerHTML = BR.TAG;
   fetch("/mokobara/products.json", { cache: "no-cache" }).then(function (r) { return r.json(); }).then(function (d) {
-    items = d.items || []; updated = d.updated;
+    items = d.items || []; updated = d.updated; state.card = BR.bestCard(items);
     $("fresh").innerHTML = '<span class="fresh-dot"></span>Prices read from Flipkart ' + BR.ago(updated) + " · every link is our ExtraPe affiliate link";
     render();
   });

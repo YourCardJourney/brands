@@ -10,7 +10,7 @@
 
   var items = [], cards = [];
   var state = {
-    card: BR.load(SLUG + ".card", null), types: [], sizes: [],
+    card: "", types: [], sizes: [],
     off: null, offMode: "ge", top: 0, one: false, stock: true, sort: BR.load("sort", "save"), view: BR.load("view", "tiles")
   };
 
@@ -52,14 +52,12 @@
     var counts = {};
     items.forEach(function (p) { Object.keys(p.banks).forEach(function (b) { counts[b] = (counts[b] || 0) + 1; }); });
     cards = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; });
-    if (state.card !== "" && cards.indexOf(state.card) < 0) {
-      // first visit: the card that cuts the most across the board
-      var tot = {};
-      items.forEach(function (p) { cards.forEach(function (c) { tot[c] = (tot[c] || 0) + (p.banks[c] || 0); }); });
-      state.card = cards.slice().sort(function (a, b) { return tot[b] - tot[a]; })[0] || "";
-    }
+    // every visit opens on today's best card (it changes with the offers)
+    var best = BR.bestCard(items);
+    state.card = best;
     $("cardSeg").innerHTML = ['<button type="button" data-card="">None</button>'].concat(cards.map(function (c) {
-      return '<button type="button" data-card="' + esc(c) + '">' + (BR.BANKS[c] ? '<span class="bk">' + BR.BANKS[c] + "</span>" : "") + esc(c) + "</button>";
+      return '<button type="button" data-card="' + esc(c) + '"' + (c === best ? ' class="best" title="Biggest discount today"' : "") + ">" +
+        (BR.BANKS[c] ? '<span class="bk">' + BR.BANKS[c] + "</span>" : "") + esc(c) + "</button>";
     })).join("");
     var on = $("cardSeg").querySelector('[data-card="' + state.card + '"]');
     press($("cardSeg"), on);
@@ -180,7 +178,7 @@
   function bind() {
     $("cardSeg").onclick = function (e) {
       var b = e.target.closest("[data-card]"); if (!b) return;
-      state.card = b.dataset.card; BR.save(SLUG + ".card", state.card); press(this, b); render();
+      state.card = b.dataset.card; press(this, b); render();
     };
     $("typeRow").onclick = function (e) {
       var b = e.target.closest("[data-type]"); if (!b) return;

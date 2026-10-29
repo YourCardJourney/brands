@@ -39,6 +39,21 @@ var BR = (function () {
     if (!(h >= 0)) return "";
     return h < 1 ? "under an hour ago" : h < 24 ? Math.round(h) + " h ago" : Math.round(h / 24) + " d ago";
   }
-  return { MARKS: MARKS, TYPES: TYPES, BANKS: BANKS, TAG: TAG, inr: inr, esc: esc, load: load, save: save, ago: ago,
+  // The card that gives the biggest ₹ off on the most in-stock products
+  // (ties: biggest total). Worked out from each read, so it follows the offers.
+  function bestCard(items) {
+    var wins = {}, tot = {};
+    items.forEach(function (p) {
+      if (!p.stock) return;
+      var top = null;
+      Object.keys(p.banks).forEach(function (c) {
+        tot[c] = (tot[c] || 0) + p.banks[c];
+        if (top === null || p.banks[c] > p.banks[top]) top = c;
+      });
+      if (top) wins[top] = (wins[top] || 0) + 1;
+    });
+    return Object.keys(tot).sort(function (a, b) { return (wins[b] || 0) - (wins[a] || 0) || tot[b] - tot[a]; })[0] || "";
+  }
+  return { MARKS: MARKS, bestCard: bestCard, TYPES: TYPES, BANKS: BANKS, TAG: TAG, inr: inr, esc: esc, load: load, save: save, ago: ago,
            mark: function (slug) { return MARKS[slug] || S + '<circle cx="12" cy="12" r="7"/></svg>'; } };
 })();
