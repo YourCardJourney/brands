@@ -90,9 +90,9 @@
       <img class="shot" id="shot" alt="Broadcast picture preview">
       <div class="row">
         <button class="act copy" id="share" type="button">
-          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
           <svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
-          <span id="shareLbl">Share</span>
+          <span id="shareLbl">Copy</span>
         </button>
         <a class="act ghost" id="dl" download="mokobara-deals.png" href="#">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
@@ -346,17 +346,14 @@
     $("dims").textContent = SIZES[size].W + " × " + SIZES[size].H;
     schedule();
   });
-  // Phones: the share sheet gets the picture with the message as its caption.
-  // Laptops: copy the picture, then paste it into WhatsApp Web.
-  var canShare = false;
-  try { canShare = !!(navigator.canShare && navigator.canShare({ files: [new File([""], "x.png", { type: "image/png" })] })); } catch (e) {}
-  $("shareLbl").textContent = canShare ? "Share" : "Copy image";
+  // Copy the picture (phones and laptops alike) - paste it into WhatsApp, X,
+  // Instagram or anywhere. No share sheet (user's call); if the browser can't
+  // put an image on the clipboard, the picture downloads instead.
+  $("shareLbl").textContent = "Copy";
   $("share").addEventListener("click", function () {
     if (!blob) return;
     var btn = this, done = function () { btn.classList.add("done"); setTimeout(function () { btn.classList.remove("done"); }, 1400); };
-    if (canShare) {
-      navigator.share({ files: [new File([blob], "mokobara-deals.png", { type: "image/png" })], text: $("msg").value }).then(done, function () {});
-    } else if (navigator.clipboard && window.ClipboardItem) {
+    if (navigator.clipboard && window.ClipboardItem) {
       navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]).then(done, function () { $("dl").click(); });
     } else $("dl").click();
   });
