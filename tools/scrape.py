@@ -53,6 +53,16 @@ SVC = "https://2.rome.api.flipkart.com/api/3/product/serviceability"
 KNOWN_OFFERS = {"PBO", "EXCHANGE", "USER_COUPON_SELECTION"}
 NEW_OFFERS = set()
 
+# A normal read takes about a minute. When Flipkart stalls this runner, stop
+# reading pages after PAGES_MIN (unread pages keep their last prices) and stop
+# the delivery check after SHIP_MIN, so one bad run can't hold the queue for hours.
+START = time.time()
+PAGES_MIN, SHIP_MIN = 7, 9
+
+
+def late(minutes):
+    return time.time() - START > minutes * 60
+
 
 def rupees(s):
     m = re.search(r"₹\s?([\d,]+)", s or "")
@@ -61,6 +71,8 @@ def rupees(s):
 
 def fetch(url):
     for attempt in range(3):
+        if late(PAGES_MIN):
+            return ""
         p = subprocess.run(["curl", "-s", "--compressed", "-m", "40", "-A", UA,
                             "-H", "Accept-Language: en-IN,en;q=0.9", url], capture_output=True)
         html = p.stdout.decode("utf-8", "ignore")
@@ -141,6 +153,8 @@ def serviceable(pids):
         body = json.dumps({"requestContext": {"products": [{"productId": x} for x in batch]},
                            "locationContext": {"pincode": pin}})
         for attempt in range(3):
+            if late(SHIP_MIN):
+                return {}
             p = subprocess.run(["curl", "-s", "--compressed", "-m", "40", "-A", UA,
                                 "-H", "X-User-Agent: %s FKUA/website/42/website/Desktop" % UA,
                                 "-H", "Content-Type: application/json", "-X", "POST", SVC, "-d", body],
@@ -241,11 +255,13 @@ def refresh(slug):
     # in stock without its offers block, is read again so no offer is missed.
     for rnd in range(3):
         miss = [i for i, r in enumerate(reads) if not ok(r)]
-        if not miss:
+        if not miss or late(PAGES_MIN):
             break
         print("  retry round %d: %d pages" % (rnd + 1, len(miss)))
         time.sleep(10 + rnd * 10)
         for i in miss:
+            if late(PAGES_MIN):
+                break
             r = one(cat["products"][i])
             if r and (r["listed"] or r["soldout"]) and (r["full"] or not reads[i]):
                 reads[i] = r

@@ -32,6 +32,7 @@ permissions:
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    timeout-minutes: 15   # a normal run is ~2 min; never hold the queue for hours
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
